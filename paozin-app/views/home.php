@@ -39,7 +39,7 @@ require_once __DIR__ . '/includes/header.php';
         <div class="hero-grid">
             <div>
                 <div class="eyebrow">A crocância encontra o GPS</div>
-                <h1>O pão quentinho,<br><span>do seu bairro.</span></h1>
+                <h1>O pão quentinho,<br><span>perto de você!</span></h1>
                 <p class="lead">
                     Conectamos você à sua padaria favorita no segundo exato em que o pão sai do forno. Chega de errar o horário da fornalha.
                 </p>

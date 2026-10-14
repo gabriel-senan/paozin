@@ -57,7 +57,7 @@ class Database {
                 return self::$instance;
             }
 
-            die("❌ Nenhum driver compatível (MySQL ou SQLite) encontrado no PHP.");
+            die("Nenhum driver compatível (MySQL ou SQLite) encontrado no PHP.");
         }
 
         return self::$instance;
