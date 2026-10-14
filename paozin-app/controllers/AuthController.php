@@ -26,14 +26,14 @@ class AuthController {
     public function loginCliente(): void {
         $whatsapp = trim($_POST['whatsapp'] ?? '');
         if (empty($whatsapp)) {
-            header("Location: /?status=erro_login_cliente");
+            header("Location: /?modal=cliente&status=erro");
             exit;
         }
 
         $cliente = Cliente::buscarPorWhatsapp($whatsapp);
         if (!$cliente) {
-            // Se não encontrou, avisa que o cliente pode se cadastrar na vitrine
-            header("Location: /?status=cliente_novo&tel=" . urlencode($whatsapp) . "#padarias");
+            // Número não encontrado — redireciona para o modal de cadastro com o telefone preenchido
+            header("Location: /?modal=cadastro&tel=" . urlencode($whatsapp));
             exit;
         }
 
@@ -43,6 +43,36 @@ class AuthController {
         $_SESSION['user_type'] = 'cliente';
 
         header("Location: /minha-conta");
+        exit;
+    }
+
+    public function cadastrarCliente(): void {
+        $nome     = trim($_POST['nome'] ?? '');
+        $whatsapp = trim($_POST['whatsapp'] ?? '');
+
+        if (empty($nome) || empty($whatsapp)) {
+            header("Location: /?modal=cadastro&status=campos_obrigatorios");
+            exit;
+        }
+
+        $ok = Cliente::cadastrarSemPadaria($nome, $whatsapp);
+        if (!$ok) {
+            header("Location: /?modal=cadastro&status=erro");
+            exit;
+        }
+
+        $cliente = Cliente::buscarPorWhatsapp($whatsapp);
+        if (!$cliente) {
+            header("Location: /?modal=cadastro&status=erro");
+            exit;
+        }
+
+        $_SESSION['cliente_id']       = $cliente['id'];
+        $_SESSION['cliente_nome']     = $cliente['nome'];
+        $_SESSION['cliente_whatsapp'] = $cliente['whatsapp'];
+        $_SESSION['user_type']        = 'cliente';
+
+        header("Location: /minha-conta?status=bem_vindo");
         exit;
     }
 
@@ -60,6 +90,16 @@ class AuthController {
 
         $clienteId = (int)$_SESSION['cliente_id'];
         $padariasSeguidas = Cliente::listarPadariasSeguidas($clienteId);
+
+        // Todas as padarias ativas com coordenadas, para o mapa
+        try {
+            $todasPadarias = Padaria::listarTodas();
+        } catch (Exception $e) {
+            $todasPadarias = [];
+        }
+
+        // IDs das padarias que o cliente já segue (para marcar no mapa)
+        $idsSeguidas = array_column($padariasSeguidas, 'id');
 
         require_once __DIR__ . '/../views/minha-conta.php';
     }

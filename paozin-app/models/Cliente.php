@@ -84,4 +84,37 @@ class Cliente {
         $stmt = $db->prepare("DELETE FROM padaria_cliente WHERE cliente_id = ? AND padaria_id = ?");
         return $stmt->execute([$clienteId, $padariaId]);
     }
+
+    /**
+     * Cadastra um cliente sem vinculá-lo a nenhuma padaria.
+     * Usado no fluxo de sign-up da landing page.
+     */
+    public static function cadastrarSemPadaria(string $nome, string $whatsapp): bool {
+        $db = Database::getConnection();
+
+        $cleanWhatsapp = preg_replace('/\D/', '', $whatsapp);
+        if (strlen($cleanWhatsapp) < 10) {
+            return false;
+        }
+        if (strlen($cleanWhatsapp) === 10 || strlen($cleanWhatsapp) === 11) {
+            $cleanWhatsapp = '55' . $cleanWhatsapp;
+        }
+
+        try {
+            $stmt = $db->prepare("SELECT id FROM clientes WHERE whatsapp = ?");
+            $stmt->execute([$cleanWhatsapp]);
+            $existingId = $stmt->fetchColumn();
+
+            if ($existingId) {
+                // Reativa e atualiza nome caso já exista
+                $upd = $db->prepare("UPDATE clientes SET ativo = 1, nome = ? WHERE id = ?");
+                return $upd->execute([trim($nome), $existingId]);
+            }
+
+            $ins = $db->prepare("INSERT INTO clientes (whatsapp, nome, ativo) VALUES (?, ?, 1)");
+            return $ins->execute([$cleanWhatsapp, trim($nome)]);
+        } catch (Exception $e) {
+            return false;
+        }
+    }
 }

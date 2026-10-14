@@ -34,6 +34,9 @@ if ($uri === '/' && $method === 'GET') {
 } elseif ($uri === '/login-cliente' && $method === 'POST') {
     $controller = new AuthController();
     $controller->loginCliente();
+} elseif ($uri === '/cadastrar-cliente' && $method === 'POST') {
+    $controller = new AuthController();
+    $controller->cadastrarCliente();
 } elseif ($uri === '/minha-conta' && $method === 'GET') {
     $controller = new AuthController();
     $controller->minhaConta();
