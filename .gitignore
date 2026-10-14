@@ -1,0 +1,33 @@
+# Ambiente e segredos
+.env
+*.env.local
+
+# Dependências PHP
+vendor/
+composer.lock
+
+# Cache e logs da aplicação
+paozin-app/storage/logs/
+paozin-app/storage/cache/
+*.log
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs e editores
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Docker volumes locais
+mysql_data/
+
+# Uploads de usuários (não versionar arquivos enviados)
+paozin-app/public/uploads/
+
+# Arquivos temporários PHP
+*.swp
+*.swo

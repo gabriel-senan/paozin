@@ -1,0 +1,673 @@
+/* ==============================================================================
+   PÃOZIN — DESIGN SYSTEM OFICIAL
+   Baseado no Manual de Identidade Visual (identidade-visual-paozin.html)
+   ============================================================================== */
+
+:root {
+  --crosta: #E89B3C;
+  --crosta-clara: #F5C46B;
+  --crosta-escura: #B36B1F;
+  --crosta-fundo: #5C3410;
+  --fornada: #58CC02;
+  --fornada-escura: #46A302;
+  --brasa: #FF4B4B;
+  --brasa-escura: #D33131;
+  --miolo: #FFF6E9;
+  --farinha: #FFFFFF;
+  --carvao: #3F3226;
+  --cinza: #8A7C6B;
+  --linha: #EFE3D2;
+  --azul: #1CB0F6;
+  --azul-escuro: #1899D6;
+  --terra: #F2F0EB;
+  --agua: #AADAFF;
+  --parque: #C8E6B5;
+  --rodovia: #FFD983;
+
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-xl: 32px;
+
+  --font-display: 'Nunito', system-ui, -apple-system, sans-serif;
+  --font-text: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: radial-gradient(120% 120% at 85% 10%, #FFF3DD 0%, var(--miolo) 55%);
+  color: var(--carvao);
+  font-family: var(--font-text);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--carvao);
+}
+
+a {
+  color: var(--crosta-escura);
+  text-decoration: none;
+  font-weight: 700;
+  transition: opacity 0.15s;
+}
+
+a:hover {
+  opacity: 0.85;
+}
+
+/* ---------- ESTRUTURA E CONTAINERS ---------- */
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+section {
+  padding: 72px 0;
+  border-bottom: 1px solid var(--linha);
+}
+
+.eyebrow {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--crosta-escura);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--crosta);
+  display: block;
+}
+
+.lead {
+  font-size: 18px;
+  max-width: 70ch;
+  color: #5b4c3c;
+  line-height: 1.6;
+}
+
+.grid {
+  display: grid;
+  gap: 24px;
+}
+
+.g2 {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.g3 {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.g4 {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+/* ---------- TOPBAR ---------- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: rgba(255, 246, 233, 0.92);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border-bottom: 2px solid var(--linha);
+}
+
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 28px;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--crosta-fundo);
+}
+
+.wordmark .acento {
+  color: var(--crosta);
+}
+
+.topbar-nav {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .topbar-nav a.nav-link {
+    display: none;
+  }
+}
+
+/* ---------- CARDS ---------- */
+.card-paozin {
+  background: var(--farinha);
+  border: 2px solid var(--linha);
+  border-radius: var(--r-xl);
+  padding: 32px 28px;
+  box-shadow: 0 16px 36px rgba(92, 52, 16, 0.06);
+  position: relative;
+}
+
+.card {
+  background: var(--farinha);
+  border: 2px solid var(--linha);
+  border-radius: var(--r-lg);
+  padding: 24px;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(60, 40, 20, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+/* ---------- BOTÕES DUOLINGO 3D TÁTEIS ---------- */
+.btn-3d {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: var(--r-md);
+  padding: 14px 24px;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.06s, box-shadow 0.06s, filter 0.15s;
+  text-decoration: none;
+  user-select: none;
+}
+
+.btn-3d:hover {
+  filter: brightness(1.05);
+  text-decoration: none;
+}
+
+.btn-3d:active {
+  transform: translateY(4px);
+}
+
+.btn-fornada {
+  background: var(--fornada);
+  box-shadow: 0 5px 0 var(--fornada-escura);
+}
+
+.btn-fornada:active {
+  box-shadow: 0 1px 0 var(--fornada-escura);
+}
+
+.btn-crosta {
+  background: var(--crosta);
+  box-shadow: 0 5px 0 var(--crosta-escura);
+}
+
+.btn-crosta:active {
+  box-shadow: 0 1px 0 var(--crosta-escura);
+}
+
+.btn-azul {
+  background: var(--azul);
+  box-shadow: 0 5px 0 var(--azul-escuro);
+}
+
+.btn-azul:active {
+  box-shadow: 0 1px 0 var(--azul-escuro);
+}
+
+.btn-ghost {
+  background: var(--farinha);
+  color: var(--crosta-escura);
+  border: 2px solid var(--linha);
+  box-shadow: 0 4px 0 var(--linha);
+}
+
+.btn-ghost:active {
+  box-shadow: 0 0 0 var(--linha);
+}
+
+.btn-grande {
+  font-size: 19px;
+  padding: 20px 28px;
+  border-radius: 20px;
+  box-shadow: 0 6px 0 var(--fornada-escura);
+}
+
+.btn-grande:active {
+  transform: translateY(6px);
+  box-shadow: 0 0 0 var(--fornada-escura);
+}
+
+.btn-disabled {
+  background: #D9D2C9 !important;
+  color: #8C8277 !important;
+  box-shadow: 0 4px 0 #B5ACA0 !important;
+  cursor: not-allowed !important;
+}
+
+/* ---------- ALERTAS ---------- */
+.alerta {
+  border-radius: var(--r-md);
+  padding: 14px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.alerta-sucesso {
+  background: #E8F9D7;
+  color: #2F6D01;
+  border: 2px solid #C7EDB0;
+}
+
+.alerta-aviso {
+  background: #FFF4D9;
+  color: #8C5900;
+  border: 2px solid #FBE19D;
+}
+
+.alerta-erro {
+  background: #FFE8E8;
+  color: #9C1B1B;
+  border: 2px solid #F8BDBD;
+}
+
+/* ---------- BADGES E PILLS ---------- */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--farinha);
+  border: 2px solid var(--linha);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--carvao);
+}
+
+.badge {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 5px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge.quente {
+  background: #DCF7C6;
+  color: #3B7C04;
+}
+
+.badge.frio {
+  background: #EFE3D2;
+  color: #8A7C6B;
+}
+
+/* ---------- FORMULÁRIOS ---------- */
+.input-group {
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.input-label {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 13.5px;
+  color: var(--carvao);
+  margin-bottom: 6px;
+}
+
+.input-field {
+  width: 100%;
+  padding: 13px 16px;
+  border: 2px solid var(--linha);
+  border-radius: var(--r-md);
+  font-family: var(--font-text);
+  font-size: 15px;
+  color: var(--carvao);
+  background: var(--farinha);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input-field:focus {
+  border-color: var(--crosta);
+  box-shadow: 0 0 0 4px rgba(232, 155, 60, 0.15);
+}
+
+/* ---------- HERO SECTION ---------- */
+.hero {
+  background: radial-gradient(120% 120% at 85% 10%, #FFF3DD 0%, var(--miolo) 55%);
+  padding: 64px 0 80px;
+  border-bottom: 1px solid var(--linha);
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 48px;
+  align-items: center;
+}
+
+@media (max-width: 860px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .hero-ctas {
+    justify-content: center;
+  }
+
+  .eyebrow {
+    justify-content: center;
+  }
+}
+
+.hero h1 {
+  font-size: clamp(38px, 6vw, 64px);
+  letter-spacing: -0.035em;
+  margin-bottom: 16px;
+}
+
+.hero h1 span {
+  color: var(--crosta);
+}
+
+.hero-ctas {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 32px;
+}
+
+.mascote-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.mascote-img {
+  width: 100%;
+  max-width: 440px;
+  /*x-blend-mode: multiply;*/
+  clip-path: circle(48% at 50% 50%);
+  filter: drop-shadow(0 20px 32px rgba(92, 52, 16, 0.16));
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Balão do Zap Flutuante */
+.balao-zap-float {
+  position: absolute;
+  bottom: 10px;
+  left: -10px;
+  /*background: #DCF8C6;*/
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  border: 2px solid #C4E8A9;
+  border-radius: 20px 20px 20px 6px;
+  padding: 14px 18px;
+  max-width: 290px;
+  box-shadow: 0 12px 28px rgba(60, 40, 20, 0.15);
+  font-size: 13.5px;
+  text-align: left;
+  animation: float-zap 4s ease-in-out infinite 0.5s;
+}
+
+@keyframes float-zap {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* ---------- SISTEMA DE MAPA (APPLE MAPS STYLE) ---------- */
+.mapa-frame {
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  border: 2px solid var(--linha);
+  box-shadow: 0 16px 40px rgba(92, 52, 16, 0.12);
+  background: var(--terra);
+  position: relative;
+}
+
+.mapa-overlay-card {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  width: calc(100% - 48px);
+  max-width: 360px;
+  padding: 20px 22px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-radius: var(--r-lg);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 14px 36px rgba(60, 40, 20, 0.18);
+  z-index: 10;
+}
+
+@media (max-width: 640px) {
+  .mapa-frame {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mapa-overlay-card {
+    position: static;
+    width: 100%;
+    max-width: none;
+    border-radius: 0;
+    border: none;
+    border-top: 2px solid var(--linha);
+    box-shadow: none;
+  }
+}
+
+/* Anel pulsante de fornada ativa */
+.pulse-ring {
+  animation: pulse-kf 2s infinite;
+  transform-origin: center;
+}
+
+@keyframes pulse-kf {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: scale(1.3);
+    opacity: 0.2;
+  }
+
+  100% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+}
+
+/* ---------- MODAL DE LOGIN UNIFICADO ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(63, 50, 38, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.modal-overlay.active {
+  display: flex;
+  opacity: 1;
+}
+
+.modal-card {
+  background: var(--farinha);
+  border: 2px solid var(--linha);
+  border-radius: var(--r-xl);
+  max-width: 480px;
+  width: 100%;
+  padding: 32px;
+  box-shadow: 0 24px 60px rgba(60, 40, 20, 0.25);
+  position: relative;
+  transform: scale(0.95);
+  transition: transform 0.2s ease;
+}
+
+.modal-overlay.active .modal-card {
+  transform: scale(1);
+}
+
+.modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--cinza);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-tabs {
+  display: flex;
+  border-radius: var(--r-md);
+  background: var(--miolo);
+  padding: 4px;
+  margin-bottom: 24px;
+  border: 1px solid var(--linha);
+}
+
+.modal-tab {
+  flex: 1;
+  text-align: center;
+  padding: 10px 14px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 13.5px;
+  border-radius: 12px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--cinza);
+  transition: all 0.15s;
+}
+
+.modal-tab.active {
+  background: var(--farinha);
+  color: var(--carvao);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+/* ---------- FOOTER INSTITUCIONAL ---------- */
+footer {
+  background: var(--carvao);
+  color: #F3E7D6;
+  padding: 60px 0 40px;
+  text-align: center;
+}
+
+footer .wordmark {
+  color: var(--miolo);
+  font-size: 36px;
+}
+
+footer p {
+  color: #B9A894;
+  font-size: 14px;
+  margin-top: 10px;
+}
