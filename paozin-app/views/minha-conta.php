@@ -231,6 +231,85 @@ $padariasMapa = array_map(function($p) use ($idsSeguidas) {
             </div>
         <?php endif; ?>
 
+        <!-- =================== CARD EDIÇÃO DE PERFIL =================== -->
+        <div class="card-paozin" style="margin-top: 28px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--linha); padding-bottom: 12px;">
+                <div>
+                    <h2 style="font-size: 20px;">Meus dados</h2>
+                    <p style="font-size: 13px; color: var(--cinza);">Atualize seu nome, WhatsApp e senha.</p>
+                </div>
+            </div>
+
+            <?php
+            $statusPerfil = $_GET['status'] ?? '';
+            $alertasPerfil = [
+                'dados_atualizados' => ['tipo' => 'sucesso', 'msg' => '<strong>Dados atualizados!</strong> Suas informações foram salvas com sucesso.'],
+                'erro_campos'       => ['tipo' => 'erro',    'msg' => 'Nome e WhatsApp são obrigatórios.'],
+                'senha_curta'       => ['tipo' => 'erro',    'msg' => 'A nova senha precisa ter pelo menos 4 caracteres.'],
+                'senhas_diferentes' => ['tipo' => 'erro',    'msg' => 'As senhas não coincidem. Tente novamente.'],
+                'erro_atualizar'    => ['tipo' => 'erro',    'msg' => 'Não foi possível salvar. Verifique se o WhatsApp já está em uso.'],
+            ];
+            if (isset($alertasPerfil[$statusPerfil])):
+                $a = $alertasPerfil[$statusPerfil];
+            ?>
+                <div class="alerta alerta-<?= $a['tipo'] ?>" style="margin-bottom: 20px;">
+                    <span style="font-weight: 900; color: var(--<?= $a['tipo'] === 'sucesso' ? 'fornada-escura' : 'brasa' ?>);"><?= $a['tipo'] === 'sucesso' ? 'OK' : 'ERRO' ?></span>
+                    <div><?= $a['msg'] ?></div>
+                </div>
+            <?php endif; ?>
+
+            <form action="/minha-conta/salvar" method="POST">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                    <div class="input-group">
+                        <label class="input-label">Nome:</label>
+                        <input type="text" name="nome" class="input-field" required maxlength="80"
+                               value="<?= htmlspecialchars($_SESSION['cliente_nome'] ?? '') ?>">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">WhatsApp (com DDD):</label>
+                        <input type="tel" name="whatsapp" class="input-field" required
+                               value="<?= htmlspecialchars($_SESSION['cliente_whatsapp'] ?? '') ?>">
+                    </div>
+                </div>
+
+                <div style="margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--linha);">
+                    <p style="font-size: 13px; color: var(--cinza); margin-bottom: 12px;">Alterar senha <span style="font-weight: 400;">(deixe em branco para manter a atual)</span></p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                        <div class="input-group">
+                            <label class="input-label">Nova senha:</label>
+                            <div style="position: relative;">
+                                <input type="password" name="nova_senha" id="cliente-nova-senha" class="input-field"
+                                       placeholder="Mínimo 4 caracteres" minlength="4" style="padding-right: 44px;">
+                                <button type="button" onclick="toggleVisibilidadeSenha('cliente-nova-senha', this)"
+                                        style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--cinza);padding:6px;display:flex;align-items:center;" title="Exibir/Ocultar">
+                                    <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Confirmar nova senha:</label>
+                            <div style="position: relative;">
+                                <input type="password" name="confirmar_senha" id="cliente-confirmar-senha" class="input-field"
+                                       placeholder="Repita a senha" minlength="4" style="padding-right: 44px;">
+                                <button type="button" onclick="toggleVisibilidadeSenha('cliente-confirmar-senha', this)"
+                                        style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--cinza);padding:6px;display:flex;align-items:center;" title="Exibir/Ocultar">
+                                    <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                </button>
+                            </div>
+                            <span id="msg-erro-senha-cliente" style="font-size:11.5px;color:var(--brasa);display:none;margin-top:4px;font-weight:700;">As senhas não coincidem.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-3d btn-azul" style="width: 100%; margin-top: 20px; padding: 13px;"
+                        onclick="return validarSenhasCliente()">
+                    Salvar alterações
+                </button>
+            </form>
+        </div>
+
     </div>
 </div>
 
@@ -457,6 +536,20 @@ function abrirCardPadaria(p) {
 function fecharCardPadaria() {
     var card = document.getElementById('mapa-padaria-card');
     if (card) card.style.display = 'none';
+}
+
+function validarSenhasCliente() {
+    var s1  = document.getElementById('cliente-nova-senha');
+    var s2  = document.getElementById('cliente-confirmar-senha');
+    var msg = document.getElementById('msg-erro-senha-cliente');
+
+    if (s1 && s2 && s1.value && s1.value !== s2.value) {
+        if (msg) msg.style.display = 'block';
+        s2.focus();
+        return false;
+    }
+    if (msg) msg.style.display = 'none';
+    return true;
 }
 </script>
 

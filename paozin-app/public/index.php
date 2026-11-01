@@ -31,9 +31,12 @@ $routes = [
     ['POST', '/painel/salvar',       fn() => (new AuthController())->salvarPadaria()],
     ['POST', '/login-cliente',       fn() => (new AuthController())->loginCliente()],
     ['POST', '/cadastrar-cliente',   fn() => (new AuthController())->cadastrarCliente()],
+    ['POST', '/definir-senha-cliente', fn() => (new AuthController())->definirSenhaCliente()],
     ['GET',  '/minha-conta',         fn() => (new AuthController())->minhaConta()],
+    ['POST', '/minha-conta/salvar',  fn() => (new AuthController())->atualizarCliente()],
     ['POST', '/cancelar-alerta',     fn() => (new AuthController())->cancelarAlerta()],
     ['GET',  '/logout',              fn() => (new AuthController())->logout()],
+    ['POST', '/logout',              fn() => (new AuthController())->logout()],
     ['POST', '/painel/fornada-pronta', fn() => (new AlertaController())->dispararFornada()],
 ];
 

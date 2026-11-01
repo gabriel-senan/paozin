@@ -24,19 +24,52 @@
 
             <!-- Estado A: LOGIN -->
             <div id="cliente-login-state">
+
+                <?php if (isset($_GET['status']) && $_GET['status'] === 'senha_incorreta'): ?>
+                    <div class="alerta alerta-erro" style="margin-bottom: 14px; padding: 10px 14px;">
+                        <span style="font-weight: 900; color: var(--brasa);">!</span>
+                        <div style="font-size: 13px;"><strong>Senha incorreta.</strong> Verifique e tente novamente.</div>
+                    </div>
+                <?php elseif (isset($_GET['status']) && $_GET['status'] === 'login_necessario'): ?>
+                    <div class="alerta alerta-aviso" style="margin-bottom: 14px; padding: 10px 14px;">
+                        <span style="font-weight: 900; color: var(--crosta-escura);">!</span>
+                        <div style="font-size: 13px;">Faça login para acessar sua conta.</div>
+                    </div>
+                <?php endif; ?>
+
                 <form action="/login-cliente" method="POST" id="form-login-cliente">
                     <div class="input-group">
                         <label class="input-label">Seu WhatsApp (com DDD):</label>
                         <input type="tel" name="whatsapp" id="input-login-tel" class="input-field"
-                               placeholder="Ex: 11999990001" required autofocus>
-                        <span style="font-size: 12px; color: var(--cinza); display: block; margin-top: 4px;">
-                            Digite o número vinculado à sua conta.
-                        </span>
+                               placeholder="Ex: 11999990001" required autofocus
+                               value="<?= htmlspecialchars($_GET['tel'] ?? '') ?>">
                     </div>
-                    <button type="submit" class="btn-3d btn-azul" style="width: 100%; margin-top: 10px;">
+
+                    <div class="input-group" style="margin-top: 14px;">
+                        <label class="input-label">Senha:</label>
+                        <div style="position: relative;">
+                            <input type="password" name="senha" id="input-login-cliente-senha" class="input-field"
+                                   placeholder="Digite sua senha" required style="padding-right: 44px;">
+                            <button type="button" onclick="toggleVisibilidadeSenha('input-login-cliente-senha', this)"
+                                    style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--cinza); padding: 6px; display: flex; align-items: center; justify-content: center;"
+                                    title="Exibir/Ocultar senha">
+                                <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <label style="display: flex; align-items: center; gap: 10px; margin-top: 14px; cursor: pointer; font-size: 13.5px; color: var(--carvao); user-select: none;">
+                        <input type="checkbox" name="lembrar_me" value="1"
+                               style="width: 16px; height: 16px; accent-color: var(--crosta); cursor: pointer;">
+                        Lembrar-me por 7 dias
+                    </label>
+
+                    <button type="submit" class="btn-3d btn-azul" style="width: 100%; margin-top: 16px;">
                         Entrar
                     </button>
                 </form>
+
                 <div style="margin-top: 18px; text-align: center;">
                     <p style="font-size: 13px; color: var(--cinza);">
                         Primeira vez aqui?
@@ -48,8 +81,14 @@
                 </div>
             </div>
 
-            <!-- Estado B: CADASTRO (nome + telefone) -->
+            <!-- Estado B: CADASTRO (nome + telefone + senha) -->
             <div id="cliente-cadastro-state" style="display: none;">
+                <?php if (isset($_GET['status']) && $_GET['status'] === 'senha_curta'): ?>
+                    <div class="alerta alerta-erro" style="margin-bottom: 14px; padding: 10px 14px;">
+                        <span style="font-weight: 900; color: var(--brasa);">!</span>
+                        <div style="font-size: 13px;">A senha precisa ter pelo menos 4 caracteres.</div>
+                    </div>
+                <?php endif; ?>
                 <div style="background: var(--miolo); border-radius: var(--r-md); padding: 14px 16px; margin-bottom: 20px; border-left: 3px solid var(--crosta);">
                     <p style="font-size: 13px; color: var(--carvao); line-height: 1.5;">
                         Cadastro simples e gratuito. Você vai receber avisos de pão quentinho direto no seu WhatsApp.
@@ -66,6 +105,19 @@
                         <input type="tel" name="whatsapp" id="input-cadastro-tel" class="input-field"
                                placeholder="Ex: 11999990001" required>
                     </div>
+                    <div class="input-group" style="margin-top: 14px;">
+                        <label class="input-label">Crie uma Senha:</label>
+                        <div style="position: relative;">
+                            <input type="password" name="senha" id="input-cadastro-cliente-senha" class="input-field"
+                                   placeholder="Mínimo 4 caracteres" required minlength="4" style="padding-right: 44px;">
+                            <button type="button" onclick="toggleVisibilidadeSenha('input-cadastro-cliente-senha', this)"
+                                    style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--cinza); padding: 6px; display: flex; align-items: center; justify-content: center;"
+                                    title="Exibir/Ocultar senha">
+                                <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            </button>
+                        </div>
+                    </div>
                     <button type="submit" class="btn-3d btn-fornada" style="width: 100%; margin-top: 16px;">
                         Criar minha conta
                     </button>
@@ -78,6 +130,50 @@
                             Fazer login
                         </button>
                     </p>
+                </div>
+            </div>
+
+            <!-- Estado C: DEFINIR SENHA (conta sem senha) -->
+            <div id="cliente-definir-senha-state" style="display: none;">
+                <?php if (isset($_GET['status']) && in_array($_GET['status'], ['sem_senha', 'senha_curta_def'])): ?>
+                    <div class="alerta alerta-<?= $_GET['status'] === 'senha_curta_def' ? 'erro' : 'aviso' ?>" style="margin-bottom: 14px; padding: 10px 14px;">
+                        <span style="font-weight: 900; color: var(--<?= $_GET['status'] === 'senha_curta_def' ? 'brasa' : 'crosta-escura' ?>);">!</span>
+                        <div style="font-size: 13px;">
+                            <?= $_GET['status'] === 'senha_curta_def'
+                                ? 'A senha precisa ter pelo menos 4 caracteres.'
+                                : 'Esta conta ainda não tem senha. Crie uma agora para continuar.' ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                <div style="background: var(--miolo); border-radius: var(--r-md); padding: 14px 16px; margin-bottom: 18px; border-left: 3px solid var(--crosta);">
+                    <p style="font-size: 13px; color: var(--carvao); line-height: 1.5;">
+                        Encontramos sua conta pelo WhatsApp. Crie uma senha para acessá-la com segurança.
+                    </p>
+                </div>
+                <form action="/definir-senha-cliente" method="POST" id="form-definir-senha-cliente">
+                    <input type="hidden" name="whatsapp" id="input-definir-senha-tel" value="<?= htmlspecialchars($_GET['tel'] ?? '') ?>">
+                    <div class="input-group">
+                        <label class="input-label">Nova Senha:</label>
+                        <div style="position: relative;">
+                            <input type="password" name="senha" id="input-nova-senha-cliente" class="input-field"
+                                   placeholder="Mínimo 4 caracteres" required minlength="4" style="padding-right: 44px;">
+                            <button type="button" onclick="toggleVisibilidadeSenha('input-nova-senha-cliente', this)"
+                                    style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--cinza); padding: 6px; display: flex; align-items: center; justify-content: center;"
+                                    title="Exibir/Ocultar senha">
+                                <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-3d btn-fornada" style="width: 100%; margin-top: 14px;">
+                        Criar senha e entrar
+                    </button>
+                </form>
+                <div style="margin-top: 16px; text-align: center;">
+                    <button type="button" onclick="switchClienteState('login')"
+                            style="background: none; border: none; cursor: pointer; color: var(--cinza); font-size: 13px; font-family: inherit;">
+                        ← Voltar ao login
+                    </button>
                 </div>
             </div>
 
@@ -352,19 +448,30 @@ function switchLoginTab(tab) {
 
 // ---------- Sub-estados da aba cliente ----------
 function switchClienteState(state) {
-    var loginState    = document.getElementById('cliente-login-state');
-    var cadastroState = document.getElementById('cliente-cadastro-state');
+    var loginState       = document.getElementById('cliente-login-state');
+    var cadastroState    = document.getElementById('cliente-cadastro-state');
+    var definirSenhaState = document.getElementById('cliente-definir-senha-state');
+
+    loginState.style.display        = 'none';
+    cadastroState.style.display     = 'none';
+    if (definirSenhaState) definirSenhaState.style.display = 'none';
 
     if (state === 'cadastro') {
-        loginState.style.display    = 'none';
         cadastroState.style.display = 'block';
         setTimeout(function() {
             var el = document.getElementById('input-cadastro-nome');
             if (el) el.focus();
         }, 50);
+    } else if (state === 'definir-senha') {
+        if (definirSenhaState) {
+            definirSenhaState.style.display = 'block';
+            setTimeout(function() {
+                var el = document.getElementById('input-nova-senha-cliente');
+                if (el) el.focus();
+            }, 50);
+        }
     } else {
-        loginState.style.display    = 'block';
-        cadastroState.style.display = 'none';
+        loginState.style.display = 'block';
         setTimeout(function() {
             var el = document.getElementById('input-login-tel');
             if (el) el.focus();
@@ -411,6 +518,12 @@ function switchPadariaState(state) {
         if (tel) {
             var f = document.getElementById('input-login-tel');
             if (f) f.value = tel;
+        }
+        var status = params.get('status');
+        if (status === 'sem_senha' || status === 'senha_curta_def') {
+            switchClienteState('definir-senha');
+            var fTel = document.getElementById('input-definir-senha-tel');
+            if (fTel && tel) fTel.value = tel;
         }
     } else if (modal === 'padaria_cadastro') {
         openLoginModal('padaria', 'cadastro');

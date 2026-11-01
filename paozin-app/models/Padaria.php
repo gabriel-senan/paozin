@@ -200,9 +200,9 @@ class Padaria {
             return ['lat' => -23.55052, 'lng' => -46.63330];
         }
 
-        $termo = $limpo;
+        $termo      = $limpo;
         $temSP      = stripos($termo, 'são paulo') !== false;
-        $temSPAbrev = stripos($termo, 'sp') !== false;
+        $temSPAbrev = stripos($termo, ', sp') !== false;
         $temCapao   = stripos($termo, 'capão redondo') !== false;
         $temBrasil  = stripos($termo, 'brasil') !== false;
 
@@ -212,29 +212,33 @@ class Padaria {
             $termo .= ', Brasil';
         }
 
-        try {
-            $url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' . urlencode($termo);
-            $context = stream_context_create([
-                'http' => [
-                    'header'  => "User-Agent: PaozinApp/1.0\r\n",
-                    'timeout' => 3,
-                ],
-            ]);
-            $res = @file_get_contents($url, false, $context);
-            if ($res) {
-                $json = json_decode($res, true);
-                if (!empty($json[0]['lat']) && !empty($json[0]['lon'])) {
-                    return [
-                        'lat' => (float)$json[0]['lat'],
-                        'lng' => (float)$json[0]['lon'],
-                    ];
+        $url     = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' . urlencode($termo);
+        $context = stream_context_create([
+            'http' => [
+                'header'  => "User-Agent: PaozinApp/1.0\r\n",
+                'timeout' => 8,
+            ],
+        ]);
+
+        for ($tentativa = 0; $tentativa < 2; $tentativa++) {
+            try {
+                $res = @file_get_contents($url, false, $context);
+                if ($res !== false) {
+                    $json = json_decode($res, true);
+                    if (!empty($json[0]['lat']) && !empty($json[0]['lon'])) {
+                        return [
+                            'lat' => (float)$json[0]['lat'],
+                            'lng' => (float)$json[0]['lon'],
+                        ];
+                    }
                 }
+            } catch (Exception $e) {
+                // tenta novamente
             }
-        } catch (Exception $e) {
-            // fallback
+            if ($tentativa === 0) sleep(1);
         }
 
-        return ['lat' => -23.55052, 'lng' => -46.63330];
+        return ['lat' => null, 'lng' => null];
     }
 
     public static function atualizarDados(int $id, array $dados): bool {
@@ -245,10 +249,13 @@ class Padaria {
             return false;
         }
 
-        if (!empty($p['endereco']) && ($p['latitude'] === null || $p['longitude'] === null)) {
-            $coords = self::geocodificarEndereco($p['endereco']);
-            $p['latitude']  = $coords['lat'];
-            $p['longitude'] = $coords['lng'];
+        if (!empty($p['endereco'])) {
+            // Sempre regeocodifica quando o endereço é fornecido, a menos que coords manuais tenham sido passadas
+            if ($p['latitude'] === null || $p['longitude'] === null) {
+                $coords = self::geocodificarEndereco($p['endereco']);
+                $p['latitude']  = $coords['lat'];
+                $p['longitude'] = $coords['lng'];
+            }
         }
 
         try {

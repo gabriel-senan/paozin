@@ -90,6 +90,9 @@ class Database {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 whatsapp TEXT NOT NULL UNIQUE,
                 nome TEXT NOT NULL,
+                senha TEXT NULL,
+                remember_token TEXT NULL,
+                remember_expires DATETIME NULL,
                 ativo INTEGER DEFAULT 1,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -164,6 +167,22 @@ class Database {
 
             // Garante que nenhuma padaria fique sem senha (pode acontecer em bancos muito antigos)
             $db->exec("UPDATE padarias SET senha = 'paozin123' WHERE senha IS NULL OR senha = '';");
+        } catch (Exception $e) {
+            // Silencioso se der erro não-crítico
+        }
+
+        try {
+            $colsC = $db->query("PRAGMA table_info(clientes)")->fetchAll(PDO::FETCH_COLUMN, 1);
+
+            if (!in_array('senha', $colsC)) {
+                $db->exec("ALTER TABLE clientes ADD COLUMN senha TEXT NULL;");
+            }
+            if (!in_array('remember_token', $colsC)) {
+                $db->exec("ALTER TABLE clientes ADD COLUMN remember_token TEXT NULL;");
+            }
+            if (!in_array('remember_expires', $colsC)) {
+                $db->exec("ALTER TABLE clientes ADD COLUMN remember_expires DATETIME NULL;");
+            }
         } catch (Exception $e) {
             // Silencioso se der erro não-crítico
         }

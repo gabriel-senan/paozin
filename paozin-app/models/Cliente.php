@@ -86,6 +86,69 @@ class Cliente {
         return $stmt->execute([$clienteId, $padariaId]);
     }
 
+    public static function definirSenha(int $clienteId, string $senha): bool {
+        $db   = Database::getConnection();
+        $hash = password_hash($senha, PASSWORD_BCRYPT);
+        $stmt = $db->prepare("UPDATE clientes SET senha = ? WHERE id = ?");
+        return $stmt->execute([$hash, $clienteId]);
+    }
+
+    public static function validarSenha(array $cliente, string $senhaDigitada): bool {
+        $hash = $cliente['senha'] ?? '';
+        if (empty($hash)) {
+            return false; // conta sem senha: obriga o usuário a criar uma
+        }
+        return password_verify($senhaDigitada, $hash);
+    }
+
+    public static function salvarToken(int $clienteId, int $diasValidade = 7): string {
+        $db      = Database::getConnection();
+        $token   = bin2hex(random_bytes(32));
+        $expires = date('Y-m-d H:i:s', strtotime("+{$diasValidade} days"));
+        $stmt    = $db->prepare("UPDATE clientes SET remember_token = ?, remember_expires = ? WHERE id = ?");
+        $stmt->execute([$token, $expires, $clienteId]);
+        return $token;
+    }
+
+    public static function buscarPorToken(string $token): ?array {
+        if (empty($token)) {
+            return null;
+        }
+        $db   = Database::getConnection();
+        $stmt = $db->prepare("SELECT * FROM clientes WHERE remember_token = ? AND remember_expires > CURRENT_TIMESTAMP AND ativo = 1");
+        $stmt->execute([$token]);
+        $res  = $stmt->fetch();
+        return $res ?: null;
+    }
+
+    public static function removerToken(int $clienteId): void {
+        $db   = Database::getConnection();
+        $stmt = $db->prepare("UPDATE clientes SET remember_token = NULL, remember_expires = NULL WHERE id = ?");
+        $stmt->execute([$clienteId]);
+    }
+
+    public static function atualizar(int $id, string $nome, string $whatsapp, string $novaSenha = ''): bool {
+        $db = Database::getConnection();
+
+        $cleanWhatsapp = self::normalizarWhatsapp($whatsapp);
+        if (empty($nome) || $cleanWhatsapp === null) {
+            return false;
+        }
+
+        try {
+            if (!empty($novaSenha)) {
+                $hash = password_hash($novaSenha, PASSWORD_BCRYPT);
+                $stmt = $db->prepare("UPDATE clientes SET nome = ?, whatsapp = ?, senha = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+                return $stmt->execute([trim($nome), $cleanWhatsapp, $hash, $id]);
+            }
+
+            $stmt = $db->prepare("UPDATE clientes SET nome = ?, whatsapp = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+            return $stmt->execute([trim($nome), $cleanWhatsapp, $id]);
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
     /**
      * Cadastra um cliente sem vinculá-lo a nenhuma padaria.
      * Usado no fluxo de sign-up da landing page.

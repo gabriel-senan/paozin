@@ -191,9 +191,31 @@ require_once __DIR__ . '/includes/header.php';
                         <input type="text" name="endereco" class="input-field" 
                                value="<?= htmlspecialchars($padaria['endereco'] ?? '') ?>" required maxlength="150">
                         <span style="font-size: 11.5px; color: var(--cinza); display: block; margin-top: 4px;">
-                            📍 Coordenadas no mapa: <strong><?= number_format((float)($padaria['latitude'] ?? -23.55), 4) ?>, <?= number_format((float)($padaria['longitude'] ?? -46.63), 4) ?></strong> (geocodificado automaticamente)
+                            O endereço é geocodificado automaticamente ao salvar.
                         </span>
                     </div>
+
+                    <!-- Coordenadas manuais (exibidas se já existirem, editáveis) -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 10px;">
+                        <div class="input-group">
+                            <label class="input-label" style="font-size: 11.5px; color: var(--cinza);">Latitude (opcional):</label>
+                            <input type="text" name="latitude" class="input-field"
+                                   placeholder="Ex: -23.5505"
+                                   value="<?= !empty($padaria['latitude']) ? $padaria['latitude'] : '' ?>"
+                                   style="font-size: 13px;">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label" style="font-size: 11.5px; color: var(--cinza);">Longitude (opcional):</label>
+                            <input type="text" name="longitude" class="input-field"
+                                   placeholder="Ex: -46.6333"
+                                   value="<?= !empty($padaria['longitude']) ? $padaria['longitude'] : '' ?>"
+                                   style="font-size: 13px;">
+                        </div>
+                    </div>
+                    <p style="font-size: 11px; color: var(--cinza); margin-top: 4px;">
+                        Preencha manualmente se o pino no mapa estiver no lugar errado. 
+                        <a href="https://www.google.com/maps" target="_blank" style="color: var(--crosta-escura); font-size: 11px;">Obter no Google Maps →</a>
+                    </p>
 
                     <!-- Telefone / WhatsApp -->
                     <div class="input-group" style="margin-top: 14px;">
