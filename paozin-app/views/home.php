@@ -39,7 +39,7 @@ require_once __DIR__ . '/includes/header.php';
                 <span style="font-weight: 900; color: var(--fornada-escura);">OK</span>
                 <div>
                     <strong>Inscrição Concluída com Sucesso!</strong><br>
-                    Seu WhatsApp receberá uma notificação no minuto exato em que a próxima fornada sair do forno.
+                    Seu WhatsApp receberá uma notificação assi que a próxima fornada sair.
                 </div>
             </div>
         <?php elseif (isset($_GET['status']) && $_GET['status'] === 'cliente_novo'): ?>
@@ -140,7 +140,6 @@ require_once __DIR__ . '/includes/header.php';
                 <h2>A crocância no mapa</h2>
                 <p class="lead">Descubra as fornalhas ativas ao redor da sua casa em tempo real.</p>
             </div>
-            <span class="pill" style="background: var(--farinha);">Capão Redondo / SP</span>
         </div>
 
         <div class="mapa-frame" style="position: relative;">
@@ -154,9 +153,10 @@ require_once __DIR__ . '/includes/header.php';
                 <span style="font-size: 14px;"></span> Minha Localização
             </button>
 
-            <!-- Card Glassmorphism Flutuante sobre o Mapa -->
-            <div class="glass mapa-overlay-card" id="home-mapa-overlay" style="z-index: 10;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <!-- Card Glassmorphism Flutuante sobre o Mapa (inicialmente oculto, aparece ao clicar na padaria) -->
+            <div class="glass mapa-overlay-card" id="home-mapa-overlay" style="z-index: 10; display: none;">
+                <button type="button" onclick="fecharCardPadariaHome()" style="position: absolute; top: 12px; right: 14px; background: none; border: none; font-size: 18px; color: var(--cinza); cursor: pointer; line-height: 1;" title="Fechar">&times;</button>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; padding-right: 18px;">
                     <div>
                         <h4 id="card-padaria-nome" style="font-size: 16px; font-weight: 900; color: var(--carvao);">Padaria Fornada de Ouro</h4>
                         <p id="card-padaria-endereco" style="font-size: 12.5px; color: var(--cinza);">Rua das Flores, 120 · Bairro Central</p>
@@ -180,6 +180,12 @@ require_once __DIR__ . '/includes/header.php';
         var PADARIAS_HOME = <?= json_encode($padariasMapa, JSON_UNESCAPED_UNICODE) ?>;
         var homeMap = null;
         var homeUserMarker = null;
+        var homeAccuracyCircle = null;
+
+        function fecharCardPadariaHome() {
+            var card = document.getElementById('home-mapa-overlay');
+            if (card) card.style.display = 'none';
+        }
 
         function criarIconePao(cor, corBorda, tamanho) {
             var h = Math.round(tamanho * 1.3);
@@ -198,6 +204,7 @@ require_once __DIR__ . '/includes/header.php';
         }
 
         function selecionarPadariaCard(p) {
+            var card = document.getElementById('home-mapa-overlay');
             var elNome = document.getElementById('card-padaria-nome');
             var elEnd  = document.getElementById('card-padaria-endereco');
             var elPrc  = document.getElementById('card-padaria-preco');
@@ -217,6 +224,10 @@ require_once __DIR__ . '/includes/header.php';
                 if (p.horario_funcionamento) extra.push('⏱ ' + p.horario_funcionamento);
                 if (p.horarios_fornada) extra.push('🥖 Fornadas: ' + p.horarios_fornada);
                 elExt.innerHTML = extra.join(' &bull; ') || 'Fornadas no bairro';
+            }
+
+            if (card) {
+                card.style.display = 'block';
             }
         }
 
@@ -267,60 +278,87 @@ require_once __DIR__ . '/includes/header.php';
                 marker.on('click', function() {
                     selecionarPadariaCard(p);
                 });
-
-                if (idx === 0) {
-                    selecionarPadariaCard(p);
-                }
             });
 
             if (boundsPoints.length > 1) {
                 homeMap.fitBounds(L.latLngBounds(boundsPoints), { padding: [50, 50], maxZoom: 15 });
             }
 
-            // Tenta obter geolocalização do usuário suavemente
+            // Tenta obter geolocalização com alta precisão
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function(pos) {
-                    var uLat = pos.coords.latitude;
-                    var uLng = pos.coords.longitude;
-                    var iconeUser = L.divIcon({
-                        html: '<div style="width:18px;height:18px;border-radius:50%;background:#1CB0F6;border:3px solid #fff;box-shadow:0 0 0 4px rgba(28,176,246,0.35);"></div>',
-                        className: '',
-                        iconSize: [18, 18],
-                        iconAnchor: [9, 9]
-                    });
-
-                    homeUserMarker = L.marker([uLat, uLng], { icon: iconeUser, zIndexOffset: 2000 })
-                        .addTo(homeMap)
-                        .bindPopup('<strong style="font-family:Inter,sans-serif;">Você está aqui</strong>');
-
-                    boundsPoints.push([uLat, uLng]);
-                    homeMap.fitBounds(L.latLngBounds(boundsPoints), { padding: [60, 60], maxZoom: 15 });
-                }, function() {
-                    // Sem permissão - mantém foco nas padarias
-                }, { timeout: 6000, maximumAge: 60000 });
+                    atualizarLocalizacaoUsuario(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, false);
+                    boundsPoints.push([pos.coords.latitude, pos.coords.longitude]);
+                    homeMap.fitBounds(L.latLngBounds(boundsPoints), { padding: [50, 50], maxZoom: 15 });
+                }, function() {}, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
             }
         }
 
-        function centralizarMinhaLocalizacaoHome() {
+        function atualizarLocalizacaoUsuario(lat, lng, acc, centralizar) {
             if (!homeMap) return;
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(pos) {
-                    var uLat = pos.coords.latitude;
-                    var uLng = pos.coords.longitude;
-                    if (!homeUserMarker) {
-                        var iconeUser = L.divIcon({
-                            html: '<div style="width:18px;height:18px;border-radius:50%;background:#1CB0F6;border:3px solid #fff;box-shadow:0 0 0 4px rgba(28,176,246,0.35);"></div>',
-                            className: '',
-                            iconSize: [18, 18],
-                            iconAnchor: [9, 9]
-                        });
-                        homeUserMarker = L.marker([uLat, uLng], { icon: iconeUser, zIndexOffset: 2000 }).addTo(homeMap);
-                    }
-                    homeMap.setView([uLat, uLng], 15, { animate: true });
-                    homeUserMarker.bindPopup('<strong style="font-family:Inter,sans-serif;">Você está aqui</strong>').openPopup();
+            var iconeUser = L.divIcon({
+                html: '<div style="width:20px;height:20px;border-radius:50%;background:#1CB0F6;border:3.5px solid #fff;box-shadow:0 0 0 5px rgba(28,176,246,0.35);cursor:grab;"></div>',
+                className: '',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+
+            if (!homeUserMarker) {
+                homeUserMarker = L.marker([lat, lng], {
+                    icon: iconeUser,
+                    zIndexOffset: 3000,
+                    draggable: true,
+                    title: 'Você está aqui (arraste para ajustar se necessário)'
+                }).addTo(homeMap);
+
+                homeUserMarker.on('dragend', function(e) {
+                    var newPos = e.target.getLatLng();
+                    if (homeAccuracyCircle) homeAccuracyCircle.setLatLng(newPos);
+                    homeUserMarker.bindPopup('<strong style="font-family:Inter,sans-serif;">Localização ajustada por você</strong>').openPopup();
                 });
+            } else {
+                homeUserMarker.setLatLng([lat, lng]);
+            }
+
+            if (acc && acc > 5) {
+                if (!homeAccuracyCircle) {
+                    homeAccuracyCircle = L.circle([lat, lng], {
+                        radius: Math.min(acc, 500),
+                        color: '#1CB0F6', fillColor: '#1CB0F6', fillOpacity: 0.12, weight: 1.5
+                    }).addTo(homeMap);
+                } else {
+                    homeAccuracyCircle.setLatLng([lat, lng]).setRadius(Math.min(acc, 500));
+                }
+            }
+
+            homeUserMarker.bindPopup('<strong style="font-family:Inter,sans-serif;">Você está aqui</strong><br><span style="font-size:11.5px;color:#8A7C6B;">(Arraste o ponto se quiser calibrar)</span>');
+
+            if (centralizar) {
+                homeMap.setView([lat, lng], 16, { animate: true });
+                homeUserMarker.openPopup();
             }
         }
+
+    function centralizarMinhaLocalizacaoHome() {
+        if (!homeMap) return;
+        if (!navigator.geolocation) {
+            alert('Geolocalização não é suportada pelo seu navegador.');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            var uLat = pos.coords.latitude;
+            var uLng = pos.coords.longitude;
+            var acc  = pos.coords.accuracy;
+            atualizarLocalizacaoUsuario(uLat, uLng, acc, true);
+        }, function(err) {
+            alert('Não foi possível obter a sua localização precisa. Verifique as permissões de localização no navegador.');
+        }, {
+            enableHighAccuracy: true,
+            timeout: 12000,
+            maximumAge: 0
+        });
+    }
 
         // Garante que o mapa inicializa após o carregamento da biblioteca Leaflet
         if (document.readyState === 'loading') {
@@ -339,92 +377,236 @@ require_once __DIR__ . '/includes/header.php';
         <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px; flex-wrap: wrap; gap: 14px;">
             <div>
                 <div class="eyebrow">03 · Estabelecimentos no Bairro</div>
-                <h2>Padarias com aviso em tempo real</h2>
-                <p class="lead">Cadastre seu número na padaria que você mais frequenta. O serviço é 100% gratuito para o freguês.</p>
+                <h2>Padarias em destaque</h2>
+                <p class="lead">As padarias mais seguidas do bairro — e a nova chegada. Cadastre-se para receber o aviso fresquinho.</p>
             </div>
-            <div>
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <!-- Setas do carrossel na identidade visual do site -->
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button type="button" id="btn-carrossel-prev" onclick="moverCarrosselDestaque(-1)" title="Anterior"
+                        style="width: 46px; height: 46px; border-radius: 50%; background: var(--farinha); border: 2px solid var(--crosta); color: var(--crosta-escura); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 0 var(--crosta); transition: transform .15s, box-shadow .15s; font-family: var(--font-display); font-weight: 900;"
+                        onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 0 var(--crosta)'"
+                        onmouseup="this.style.transform='';this.style.boxShadow='0 3px 0 var(--crosta)'"
+                        onmouseleave="this.style.transform='';this.style.boxShadow='0 3px 0 var(--crosta)'">
+                        &#8592;
+                    </button>
+                    <span id="carrossel-indicador" style="font-size: 12.5px; color: var(--cinza); font-weight: 600; min-width: 36px; text-align: center;">1 / 4</span>
+                    <button type="button" id="btn-carrossel-next" onclick="moverCarrosselDestaque(1)" title="Próximo"
+                        style="width: 46px; height: 46px; border-radius: 50%; background: var(--fornada); border: 2px solid var(--fornada-escura); color: #fff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 0 var(--fornada-escura); transition: transform .15s, box-shadow .15s; font-family: var(--font-display); font-weight: 900;"
+                        onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 1px 0 var(--fornada-escura)'"
+                        onmouseup="this.style.transform='';this.style.boxShadow='0 3px 0 var(--fornada-escura)'"
+                        onmouseleave="this.style.transform='';this.style.boxShadow='0 3px 0 var(--fornada-escura)'">
+                        &#8594;
+                    </button>
+                </div>
                 <button onclick="openLoginModal('cliente')" class="btn-3d btn-ghost" style="padding: 10px 18px; font-size: 13px;">
                     Já tem cadastro? Entrar
                 </button>
             </div>
         </div>
 
-        <div class="grid g2">
-            <?php if (!empty($padarias)): ?>
-                <?php foreach ($padarias as $p): ?>
-                    <div class="card-paozin">
-                        
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                            <div>
-                                <h3 style="font-size: 22px; margin-bottom: 4px;"><?= htmlspecialchars($p['nome']) ?></h3>
-                                <p style="color: var(--cinza); font-size: 13.5px;">
-                                    <?= htmlspecialchars($p['endereco']) ?>
-                                </p>
-                            </div>
-                            <span class="badge quente">
-                                Nota <?= number_format((float)$p['nota_media'], 1, ',', '.') ?>
-                            </span>
-                        </div>
+        <?php
+        // Regra: máx 4 destaques (3 mais seguidas + 1 mais recente)
+        $destaques = $padariaDestaque ?? [];
+        // Rótulos de posição
+        $rotulos = [];
+        $totalDest = count($destaques);
+        for ($i = 0; $i < $totalDest; $i++) {
+            if ($i < 3) {
+                $rotulos[$i] = ['label' => '🏆 Top ' . ($i + 1) . ' em seguidores', 'cor' => 'var(--crosta-escura)', 'bg' => '#FFF4D9'];
+            } else {
+                $rotulos[$i] = ['label' => '🆕 Recém chegada', 'cor' => '#2F6D01', 'bg' => '#E8FDD3'];
+            }
+        }
+        ?>
 
-                        <!-- Mini Stats do Estabelecimento -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0 10px;">
-                            <div style="background: var(--miolo); border: 1px solid var(--linha); border-radius: var(--r-md); padding: 12px; text-align: center;">
-                                <span style="font-size: 12px; color: var(--cinza); display: block;">Preço do Quilo</span>
-                                <strong style="font-size: 17px; color: var(--crosta-fundo);">
-                                    R$ <?= number_format((float)$p['preco_pao_quilo'], 2, ',', '.') ?>
-                                </strong>
-                            </div>
-                            <div style="background: var(--miolo); border: 1px solid var(--linha); border-radius: var(--r-md); padding: 12px; text-align: center;">
-                                <span style="font-size: 12px; color: var(--cinza); display: block;">Valor por Unidade</span>
-                                <strong style="font-size: 17px; color: var(--crosta-fundo);">
-                                    <?= !empty($p['preco_pao_unidade']) ? 'R$ ' . number_format((float)$p['preco_pao_unidade'], 2, ',', '.') : '—' ?>
-                                </strong>
-                            </div>
-                        </div>
+        <!-- Viewport do carrossel -->
+        <div style="position: relative; overflow: hidden; margin: 0 -12px;">
+            <div id="destaque-carrossel-track" style="display: flex; gap: 0; transition: transform .4s cubic-bezier(.4,0,.2,1); will-change: transform;">
 
-                        <!-- Horários de funcionamento e saídas de pão -->
-                        <div style="background: #FDFBF7; border: 1px solid var(--linha); border-radius: var(--r-md); padding: 10px 14px; margin-bottom: 18px; font-size: 12.5px;">
-                            <?php if (!empty($p['horario_funcionamento'])): ?>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                                    <span style="color: var(--cinza);">Funcionamento:</span>
-                                    <span style="color: var(--carvao); font-weight: 600;"><?= htmlspecialchars($p['horario_funcionamento']) ?></span>
+                <?php if (!empty($destaques)): ?>
+                    <?php foreach ($destaques as $idx => $p): ?>
+                        <div class="destaque-slide" style="min-width: calc(33.333%); width: calc(33.333%); flex-shrink: 0; padding: 0 12px; box-sizing: border-box;">
+                            <div class="card-paozin" style="height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                                        <div>
+                                            <h3 style="font-size: 19px; margin-bottom: 4px;"><?= htmlspecialchars($p['nome']) ?></h3>
+                                            <p style="color: var(--cinza); font-size: 13px;">
+                                                <?= htmlspecialchars($p['endereco']) ?>
+                                            </p>
+                                        </div>
+                                        <span class="badge quente">
+                                            ★ <?= number_format((float)$p['nota_media'], 1, ',', '.') ?>
+                                        </span>
+                                    </div>
+
+                                    <!-- Seguidores -->
+                                    <?php if (!empty($p['total_inscritos'])): ?>
+                                        <div style="font-size: 12px; color: var(--cinza); margin-bottom: 10px; display: flex; align-items: center; gap: 5px;">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;color:var(--crosta);"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                            <strong style="color: var(--carvao);"><?= (int)$p['total_inscritos'] ?></strong> inscritos
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <!-- Mini Stats -->
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 10px;">
+                                        <div style="background: var(--miolo); border: 1px solid var(--linha); border-radius: var(--r-md); padding: 10px; text-align: center;">
+                                            <span style="font-size: 11.5px; color: var(--cinza); display: block;">Preço do Kg</span>
+                                            <strong style="font-size: 16px; color: var(--crosta-fundo);">
+                                                R$ <?= number_format((float)$p['preco_pao_quilo'], 2, ',', '.') ?>
+                                            </strong>
+                                        </div>
+                                        <div style="background: var(--miolo); border: 1px solid var(--linha); border-radius: var(--r-md); padding: 10px; text-align: center;">
+                                            <span style="font-size: 11.5px; color: var(--cinza); display: block;">Unidade</span>
+                                            <strong style="font-size: 16px; color: var(--crosta-fundo);">
+                                                <?= !empty($p['preco_pao_unidade']) ? 'R$ ' . number_format((float)$p['preco_pao_unidade'], 2, ',', '.') : '—' ?>
+                                            </strong>
+                                        </div>
+                                    </div>
+
+                                    <!-- Horários -->
+                                    <div style="background: #FDFBF7; border: 1px solid var(--linha); border-radius: var(--r-md); padding: 10px 12px; margin-bottom: 16px; font-size: 12px;">
+                                        <?php if (!empty($p['horario_funcionamento'])): ?>
+                                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                                <span style="color: var(--cinza);">Aberto:</span>
+                                                <span style="color: var(--carvao); font-weight: 600;"><?= htmlspecialchars($p['horario_funcionamento']) ?></span>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php if (!empty($p['horarios_fornada'])): ?>
+                                            <div style="display: flex; justify-content: space-between;">
+                                                <span style="color: var(--cinza);">Fornadas:</span>
+                                                <span style="color: var(--fornada-escura); font-weight: 700;"><?= htmlspecialchars($p['horarios_fornada']) ?></span>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
-                            <?php endif; ?>
-                            <?php if (!empty($p['horarios_fornada'])): ?>
-                                <div style="display: flex; justify-content: space-between;">
-                                    <span style="color: var(--cinza);">Fornadas fixas:</span>
-                                    <span style="color: var(--fornada-escura); font-weight: 700;"><?= htmlspecialchars($p['horarios_fornada']) ?></span>
-                                </div>
-                            <?php endif; ?>
+
+                                <!-- Formulário de Inscrição -->
+                                <form action="/inscrever" method="POST" style="border-top: 1px dashed var(--linha); padding-top: 16px; margin-top: auto;">
+                                    <input type="hidden" name="padaria_id" value="<?= (int)$p['id'] ?>">
+                                    <div class="input-group">
+                                        <label class="input-label" style="font-size: 12px;">Seu Nome:</label>
+                                        <input type="text" name="nome" class="input-field" placeholder="Ex: Gabriel Sena" required>
+                                    </div>
+                                    <div class="input-group" style="margin-top: 8px;">
+                                        <label class="input-label" style="font-size: 12px;">WhatsApp (com DDD):</label>
+                                        <input type="tel" name="whatsapp" class="input-field" placeholder="Ex: 11999990001" required>
+                                    </div>
+                                    <button type="submit" class="btn-3d btn-fornada" style="width: 100%; margin-top: 12px; font-size: 13px; padding: 11px;">
+                                        Ativar Aviso
+                                    </button>
+                                </form>
+
+                            </div>
                         </div>
-
-                        <!-- Formulário de Inscrição em 1 Clique -->
-                        <form action="/inscrever" method="POST" style="border-top: 1px dashed var(--linha); padding-top: 18px;">
-                            <input type="hidden" name="padaria_id" value="<?= (int)$p['id'] ?>">
-
-                            <div class="input-group">
-                                <label class="input-label">Seu Nome:</label>
-                                <input type="text" name="nome" class="input-field" placeholder="Ex: Gabriel Sena" required>
-                            </div>
-
-                            <div class="input-group">
-                                <label class="input-label">Seu WhatsApp (com DDD):</label>
-                                <input type="tel" name="whatsapp" class="input-field" placeholder="Ex: 11999990001" required>
-                            </div>
-
-                            <button type="submit" class="btn-3d btn-fornada" style="width: 100%;">
-                                Ativar Aviso Desta Padaria
-                            </button>
-                        </form>
-
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="card-paozin" style="min-width: 100%; text-align: center; padding: 48px;">
+                        <p style="color: var(--cinza);">Carregando estabelecimentos credenciados...</p>
                     </div>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <div class="card-paozin" style="grid-column: 1 / -1; text-align: center; padding: 48px;">
-                    <p style="color: var(--cinza);">Carregando estabelecimentos credenciados...</p>
-                </div>
-            <?php endif; ?>
+                <?php endif; ?>
+
+            </div>
         </div>
+
+        <!-- Dots de navegação -->
+        <?php if (!empty($destaques)): ?>
+            <div id="carrossel-dots" style="display: flex; justify-content: center; gap: 8px; margin-top: 24px;">
+                <?php for ($d = 0; $d < count($destaques); $d++): ?>
+                    <button type="button" onclick="irParaSlide(<?= $d ?>)"
+                        style="width: <?= $d === 0 ? '24px' : '8px' ?>; height: 8px; border-radius: 100px; border: none; cursor: pointer; transition: all .3s; background: <?= $d === 0 ? 'var(--crosta)' : 'var(--linha)' ?>;"
+                        class="carrossel-dot" data-dot="<?= $d ?>"></button>
+                <?php endfor; ?>
+            </div>
+        <?php endif; ?>
+
+        <style>
+        @media (max-width: 1023px) and (min-width: 641px) {
+            .destaque-slide { min-width: 50% !important; width: 50% !important; }
+        }
+        @media (max-width: 640px) {
+            .destaque-slide { min-width: 100% !important; width: 100% !important; }
+        }
+        </style>
+
+        <script>
+        (function() {
+            var total   = <?= count($destaques) ?>;
+            var atual   = 0;
+
+            function slidesVisiveis() {
+                return window.innerWidth < 640 ? 1 : window.innerWidth < 1024 ? 2 : 3;
+            }
+
+            function getSlideWidth() {
+                var track = document.getElementById('destaque-carrossel-track');
+                if (!track) return 0;
+                var slide = track.querySelector('.destaque-slide');
+                if (!slide) return 0;
+                // Como gap=0 e padding está dentro do slide, offsetWidth = largura total do slot
+                return slide.offsetWidth;
+            }
+
+            function atualizarUI() {
+                var track = document.getElementById('destaque-carrossel-track');
+                if (!track) return;
+                track.style.transform = 'translateX(-' + (atual * getSlideWidth()) + 'px)';
+
+                // Indicador texto
+                var ind = document.getElementById('carrossel-indicador');
+                if (ind) ind.textContent = (atual + 1) + ' / ' + total;
+
+                // Dots
+                document.querySelectorAll('.carrossel-dot').forEach(function(dot, i) {
+                    dot.style.width      = i === atual ? '24px' : '8px';
+                    dot.style.background = i === atual ? 'var(--crosta)' : 'var(--linha)';
+                });
+
+                // Setas: desabilitar nos extremos
+                var prev = document.getElementById('btn-carrossel-prev');
+                var next = document.getElementById('btn-carrossel-next');
+                var maxSlide = Math.max(0, total - slidesVisiveis());
+                if (prev) prev.style.opacity = atual === 0 ? '0.4' : '1';
+                if (next) next.style.opacity = atual >= maxSlide ? '0.4' : '1';
+            }
+
+            window.moverCarrosselDestaque = function(dir) {
+                var maxSlide = Math.max(0, total - slidesVisiveis());
+                atual = Math.max(0, Math.min(maxSlide, atual + dir));
+                atualizarUI();
+            };
+
+            window.irParaSlide = function(idx) {
+                var maxSlide = Math.max(0, total - slidesVisiveis());
+                atual = Math.max(0, Math.min(maxSlide, idx));
+                atualizarUI();
+            };
+
+            // Swipe touch support
+            (function() {
+                var track = document.getElementById('destaque-carrossel-track');
+                if (!track) return;
+                var startX = 0;
+                track.addEventListener('touchstart', function(e) { startX = e.touches[0].clientX; }, { passive: true });
+                track.addEventListener('touchend', function(e) {
+                    var diff = startX - e.changedTouches[0].clientX;
+                    if (Math.abs(diff) > 50) moverCarrosselDestaque(diff > 0 ? 1 : -1);
+                }, { passive: true });
+            })();
+
+            // Inicializa visual
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', atualizarUI);
+            } else {
+                atualizarUI();
+            }
+
+            // Reajustar se a janela for redimensionada
+            window.addEventListener('resize', atualizarUI);
+        })();
+        </script>
 
     </div>
 </section>
@@ -466,11 +648,9 @@ require_once __DIR__ . '/includes/header.php';
     <div class="wrap">
         <div class="card-paozin" style="background: linear-gradient(135deg, #FFFDF9 0%, #FFF3DD 100%); border-color: var(--crosta-clara); padding: 48px 36px;">
             <div style="max-width: 640px;">
-                <span class="pill" style="margin-bottom: 16px; background: #FFF4D9; color: var(--crosta-escura); border-color: var(--crosta);">
-                    Para Donos de Panificadoras e Mercados
-                </span>
+                
                 <h2 style="font-size: clamp(28px, 4vw, 42px); margin-bottom: 16px;">
-                    Zere o desperdício de pão frio e encha seu balcão na hora do pico.
+                    Zere o desperdício de pão e encha seu balcão na hora do pico.
                 </h2>
                 <p class="lead" style="font-size: 16px; margin-bottom: 24px;">
                     Por apenas <strong>R$ 20,00 mensais</strong> (menos que um pacote de café tradicional), o Pãozin conecta o seu forno aos clientes do seu quarteirão no minuto exato em que a fornada fica pronta.

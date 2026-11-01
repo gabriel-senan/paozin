@@ -671,3 +671,111 @@ footer p {
   font-size: 14px;
   margin-top: 10px;
 }
+
+/* ---------- CARROSSEL DE PADARIAS ---------- */
+.carrossel-padarias-container {
+  position: relative;
+  margin-top: 8px;
+}
+
+.carrossel-padarias-track {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 4px 24px 4px;
+  scrollbar-width: none; /* Firefox */
+}
+
+.carrossel-padarias-track::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
+.carrossel-padaria-item {
+  flex: 0 0 calc(50% - 12px);
+  min-width: 310px;
+  max-width: 520px;
+  scroll-snap-align: start;
+}
+
+@media (max-width: 768px) {
+  .carrossel-padaria-item {
+    flex: 0 0 88%;
+    min-width: 280px;
+  }
+}
+
+.carrossel-nav-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--farinha);
+  border: 2px solid var(--linha);
+  box-shadow: 0 4px 12px rgba(92, 52, 16, 0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--carvao);
+  font-size: 18px;
+  font-weight: 800;
+  transition: all 0.15s ease;
+}
+
+.carrossel-nav-btn:hover {
+  background: var(--miolo);
+  border-color: var(--crosta);
+  transform: scale(1.06);
+}
+
+.carrossel-nav-btn:active {
+  transform: scale(0.96);
+}
+
+/* =====================================================================
+   LEAFLET — BOTÕES DE ZOOM com identidade Pãozin
+   ===================================================================== */
+.leaflet-bar {
+  border: none !important;
+  box-shadow: 0 4px 0 var(--crosta-escura) !important;
+  border-radius: var(--r-md) !important;
+  overflow: hidden;
+}
+
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background: var(--crosta) !important;
+  color: #fff !important;
+  border-bottom: 1px solid var(--crosta-escura) !important;
+  font-family: var(--font-display) !important;
+  font-weight: 900 !important;
+  font-size: 18px !important;
+  line-height: 28px !important;
+  width: 34px !important;
+  height: 34px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background 0.15s, transform 0.1s !important;
+}
+
+.leaflet-bar a:last-child {
+  border-bottom: none !important;
+}
+
+.leaflet-bar a:hover {
+  background: var(--crosta-escura) !important;
+}
+
+.leaflet-bar a:active {
+  transform: translateY(2px) !important;
+  box-shadow: none !important;
+}
+
+.leaflet-bar a.leaflet-disabled {
+  background: var(--linha) !important;
+  color: var(--cinza) !important;
+  cursor: not-allowed !important;
+}

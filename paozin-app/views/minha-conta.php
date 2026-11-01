@@ -67,6 +67,16 @@ $padariasMapa = array_map(function($p) use ($idsSeguidas) {
                 <span style="font-weight: 900; color: var(--fornada-escura);">OK</span>
                 <div>Alerta cancelado. Você não receberá mais notificações desta padaria.</div>
             </div>
+        <?php elseif (isset($_GET['status']) && $_GET['status'] === 'inscrito_sucesso'): ?>
+            <div class="alerta alerta-sucesso" style="margin-bottom: 20px;">
+                <span style="font-weight: 900; color: var(--fornada-escura);">OK</span>
+                <div><strong>Aviso ativado!</strong> Você será notificado quando o pão sair quentinho desta padaria.</div>
+            </div>
+        <?php elseif (isset($_GET['status']) && $_GET['status'] === 'erro_cadastro'): ?>
+            <div class="alerta alerta-erro" style="margin-bottom: 20px;">
+                <span style="font-weight: 900; color: var(--brasa);">ERRO</span>
+                <div>Não foi possível ativar o aviso. Tente novamente.</div>
+            </div>
         <?php endif; ?>
 
         <!-- Card: Padarias seguidas -->
@@ -148,8 +158,48 @@ $padariasMapa = array_map(function($p) use ($idsSeguidas) {
             </div>
 
             <!-- Mapa Leaflet (oculto inicialmente) -->
-            <div id="mapa-expandido" style="display: none;">
+            <div id="mapa-expandido" style="display: none; position: relative;">
                 <div id="paozin-map" style="width: 100%; height: 440px;"></div>
+
+                <!-- Card flutuante: aparece ao clicar no pin de uma padaria -->
+                <div id="mapa-padaria-card" style="display:none; position:absolute; bottom:70px; left:50%; transform:translateX(-50%); width:calc(100% - 48px); max-width:380px; background:#fff; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.18); padding:18px 20px; z-index:800; border:1.5px solid var(--linha);">
+                    <button type="button" onclick="fecharCardPadaria()" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:18px;color:var(--cinza);cursor:pointer;line-height:1;" title="Fechar">&times;</button>
+
+                    <h4 id="mpc-nome" style="font-size:15px;font-weight:900;color:var(--carvao);margin-bottom:3px;padding-right:20px;"></h4>
+                    <p  id="mpc-end"  style="font-size:12px;color:var(--cinza);margin-bottom:10px;"></p>
+
+                    <div style="display:flex;gap:8px;margin-bottom:10px;">
+                        <span id="mpc-preco" class="pill" style="font-size:12px;flex:1;justify-content:center;font-weight:700;"></span>
+                        <span id="mpc-nota"  class="pill" style="font-size:12px;flex:1;justify-content:center;font-weight:700;"></span>
+                    </div>
+                    <div id="mpc-extra" style="font-size:11.5px;color:var(--cinza);margin-bottom:14px;line-height:1.6;"></div>
+
+                    <!-- Botão: ainda não segue -->
+                    <form id="mpc-form-inscrever" action="/inscrever" method="POST" style="display:none;">
+                        <input type="hidden" name="padaria_id" id="mpc-padaria-id" value="">
+                        <input type="hidden" name="nome"       value="<?= htmlspecialchars($_SESSION['cliente_nome'] ?? '') ?>">
+                        <input type="hidden" name="whatsapp"   value="<?= htmlspecialchars($_SESSION['cliente_whatsapp'] ?? '') ?>">
+                        <input type="hidden" name="redirect"   value="/minha-conta">
+                        <button type="submit" class="btn-3d btn-fornada" style="width:100%;font-size:13px;padding:11px;">
+                            🥖 Ativar Aviso desta Padaria
+                        </button>
+                    </form>
+
+                    <!-- Badge: já segue -->
+                    <div id="mpc-ja-segue" style="display:none;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                            <span style="display:inline-flex;align-items:center;gap:6px;background:#E8FDD3;color:#2F6D01;font-size:13px;font-weight:700;padding:8px 14px;border-radius:100px;">
+                                ✓ Você já recebe avisos desta padaria
+                            </span>
+                            <form action="/cancelar-alerta" method="POST" onsubmit="return confirm('Parar de receber avisos desta padaria?');">
+                                <input type="hidden" name="padaria_id" id="mpc-padaria-id-cancel" value="">
+                                <button type="submit" class="btn-3d btn-ghost" style="color:var(--brasa);border-color:#F8BDBD;font-size:12px;padding:7px 13px;">
+                                    Parar avisos
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Legenda -->
                 <div style="padding: 16px 22px; border-top: 1.5px solid var(--linha); display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
@@ -169,6 +219,7 @@ $padariasMapa = array_map(function($p) use ($idsSeguidas) {
                     </div>
                 </div>
             </div>
+
 
         </div>
 
@@ -252,32 +303,15 @@ function inicializarMapa(lat, lng) {
         .addTo(leafletMap)
         .bindPopup('<strong style="font-family:Inter,sans-serif;">Você está aqui</strong>', { closeButton: false });
 
-    // Pins das padarias
+    // Pins das padarias — clique abre o card flutuante
     PADARIAS.forEach(function(p) {
-        var icone  = p.segue ? iconeSeguida : iconeNormal;
-        var badge  = p.segue
-            ? '<br><span style="display:inline-block;margin-top:6px;padding:2px 10px;background:#58CC02;color:#fff;border-radius:20px;font-size:11px;font-weight:700;">Você segue</span>'
-            : '';
-        var precoUnTxt = p.preco_unidade ? ' &bull; R$ ' + p.preco_unidade.toFixed(2).replace('.', ',') + '/un' : '';
-        var extraInfo = '';
-        if (p.horario_funcionamento) {
-            extraInfo += '<div style="font-size:11.5px;color:#6b5d4e;margin-top:4px;">⏱ ' + p.horario_funcionamento + '</div>';
-        }
-        if (p.horarios_fornada) {
-            extraInfo += '<div style="font-size:11.5px;color:#58CC02;font-weight:700;margin-top:2px;">🥖 Fornadas: ' + p.horarios_fornada + '</div>';
-        }
+        var icone = p.segue ? iconeSeguida : iconeNormal;
 
-        var popup  = '<div style="font-family:Inter,sans-serif;min-width:210px;line-height:1.4;">'
-            + '<strong style="font-size:14px;display:block;margin-bottom:3px;">' + p.nome + '</strong>'
-            + '<span style="font-size:12px;color:#8A7C6B;display:block;margin-bottom:5px;">' + p.endereco + '</span>'
-            + '<span style="font-size:12.5px;font-weight:600;">R$ ' + p.preco.toFixed(2).replace('.', ',') + '/kg' + precoUnTxt + ' &middot; Nota ' + p.nota.toFixed(1).replace('.', ',') + '</span>'
-            + extraInfo
-            + badge
-            + '</div>';
+        var marker = L.marker([p.lat, p.lng], { icon: icone }).addTo(leafletMap);
 
-        L.marker([p.lat, p.lng], { icon: icone })
-            .addTo(leafletMap)
-            .bindPopup(popup, { maxWidth: 260 });
+        marker.on('click', function() {
+            abrirCardPadaria(p);
+        });
     });
 
     // Ajusta bounds para mostrar usuário + todas as padarias
@@ -292,9 +326,15 @@ function inicializarMapa(lat, lng) {
 function obterLocalizacao(callback) {
     if (!navigator.geolocation) { callback(null); return; }
     navigator.geolocation.getCurrentPosition(
-        function(pos) { callback({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
-        function()    { callback(null); },
-        { timeout: 8000, enableHighAccuracy: true, maximumAge: 60000 }
+        function(pos) {
+            callback({
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+                acc: pos.coords.accuracy
+            });
+        },
+        function() { callback(null); },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
 }
 
@@ -305,13 +345,15 @@ function centralizarNaMinhaLocalizacao() {
     obterLocalizacao(function(loc) {
         if (btn) { btn.textContent = 'Minha localização'; btn.disabled = false; }
         if (!loc) {
-            alert('Não foi possível obter sua localização. Verifique as permissões do navegador.');
+            alert('Não foi possível obter sua localização precisa. Verifique as permissões do navegador.');
             return;
         }
         if (!mapaAberto) { expandirMapa(loc); return; }
         if (leafletMap) {
             leafletMap.setView([loc.lat, loc.lng], 16, { animate: true });
-            if (userMarker) userMarker.setLatLng([loc.lat, loc.lng]).openPopup();
+            if (userMarker) {
+                userMarker.setLatLng([loc.lat, loc.lng]).openPopup();
+            }
         }
     });
 }
@@ -360,6 +402,61 @@ function recolherMapa() {
 
 function toggleMapa() {
     if (mapaAberto) recolherMapa(); else expandirMapa();
+}
+
+// ── Card flutuante da padaria ───────────────────────────────────
+function abrirCardPadaria(p) {
+    var card = document.getElementById('mapa-padaria-card');
+    if (!card) return;
+
+    // Preenche os campos de texto
+    var elNome  = document.getElementById('mpc-nome');
+    var elEnd   = document.getElementById('mpc-end');
+    var elPreco = document.getElementById('mpc-preco');
+    var elNota  = document.getElementById('mpc-nota');
+    var elExtra = document.getElementById('mpc-extra');
+
+    if (elNome)  elNome.textContent  = p.nome;
+    if (elEnd)   elEnd.textContent   = p.endereco;
+
+    if (elPreco) {
+        var txt = 'R$ ' + p.preco.toFixed(2).replace('.', ',') + '/kg';
+        if (p.preco_unidade) txt += ' · R$ ' + p.preco_unidade.toFixed(2).replace('.', ',') + '/un';
+        elPreco.textContent = txt;
+    }
+
+    if (elNota) elNota.textContent = 'Nota ' + p.nota.toFixed(1).replace('.', ',');
+
+    if (elExtra) {
+        var partes = [];
+        if (p.horario_funcionamento) partes.push('⏱ ' + p.horario_funcionamento);
+        if (p.horarios_fornada)      partes.push('🥖 Fornadas: ' + p.horarios_fornada);
+        elExtra.innerHTML = partes.join(' &bull; ') || '';
+    }
+
+    // Mostra o botão correto (inscrever ou já segue)
+    var formInscrever = document.getElementById('mpc-form-inscrever');
+    var divJaSegue    = document.getElementById('mpc-ja-segue');
+    var inputId       = document.getElementById('mpc-padaria-id');
+    var inputIdCancel = document.getElementById('mpc-padaria-id-cancel');
+
+    if (inputId)       inputId.value       = p.id;
+    if (inputIdCancel) inputIdCancel.value = p.id;
+
+    if (p.segue) {
+        if (formInscrever) formInscrever.style.display = 'none';
+        if (divJaSegue)    divJaSegue.style.display    = 'block';
+    } else {
+        if (formInscrever) formInscrever.style.display = 'block';
+        if (divJaSegue)    divJaSegue.style.display    = 'none';
+    }
+
+    card.style.display = 'block';
+}
+
+function fecharCardPadaria() {
+    var card = document.getElementById('mapa-padaria-card');
+    if (card) card.style.display = 'none';
 }
 </script>
 

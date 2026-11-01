@@ -15,6 +15,54 @@ class Padaria {
         return $stmt->fetchAll();
     }
 
+    /**
+     * Retorna exatamente 4 padarias em destaque para o carrossel:
+     *  - As 3 mais seguidas (maior nº de inscritos em padaria_cliente)
+     *  - A 4ª mais recentemente cadastrada que não esteja nas 3 anteriores
+     */
+    public static function listarDestaques(): array {
+        $db = Database::getConnection();
+
+        // Top 3 mais seguidas
+        $stmt = $db->query("
+            SELECT p.*, COUNT(pc.id) AS total_inscritos
+            FROM padarias p
+            LEFT JOIN padaria_cliente pc ON pc.padaria_id = p.id
+            WHERE p.status_assinatura = 'ativo'
+            GROUP BY p.id
+            ORDER BY total_inscritos DESC, p.nota_media DESC
+            LIMIT 3
+        ");
+        $top3 = $stmt->fetchAll();
+
+        $idsTop3 = array_column($top3, 'id');
+
+        // A mais recente que não esteja no top 3
+        $placeholders = count($idsTop3) > 0
+            ? implode(',', array_fill(0, count($idsTop3), '?'))
+            : '0';
+
+        $stmt2 = $db->prepare("
+            SELECT p.*, COUNT(pc.id) AS total_inscritos
+            FROM padarias p
+            LEFT JOIN padaria_cliente pc ON pc.padaria_id = p.id
+            WHERE p.status_assinatura = 'ativo'
+            AND p.id NOT IN ({$placeholders})
+            GROUP BY p.id
+            ORDER BY p.created_at DESC, p.id DESC
+            LIMIT 1
+        ");
+        $stmt2->execute($idsTop3);
+        $maisRecente = $stmt2->fetch();
+
+        $destaques = $top3;
+        if ($maisRecente) {
+            $destaques[] = $maisRecente;
+        }
+
+        return $destaques;
+    }
+
     public static function verificarCooldown(int $id, int $limiteMinutos = 30): array {
         $padaria = self::buscarPorId($id);
         if (!$padaria) {
@@ -91,8 +139,15 @@ class Padaria {
         $horarioFunc = trim($dados['horario_funcionamento'] ?? '06:00 às 20:00');
         $horariosFornada = trim($dados['horarios_fornada'] ?? '06:30, 16:30');
         $senha = trim($dados['senha'] ?? 'paozin123');
-        $latitude = !empty($dados['latitude']) ? (float)$dados['latitude'] : -23.55052;
-        $longitude = !empty($dados['longitude']) ? (float)$dados['longitude'] : -46.63330;
+        $latitude = !empty($dados['latitude']) ? (float)$dados['latitude'] : null;
+        $longitude = !empty($dados['longitude']) ? (float)$dados['longitude'] : null;
+
+        // Se latitude e longitude não foram enviadas explicitamente, geocodifica pelo endereço
+        if ($latitude === null || $longitude === null) {
+            $coords = self::geocodificarEndereco($endereco);
+            $latitude = $coords['lat'];
+            $longitude = $coords['lng'];
+        }
 
         if (empty($nome) || empty($telefone)) {
             return null;
@@ -124,6 +179,45 @@ class Padaria {
         }
     }
 
+    public static function geocodificarEndereco(string $endereco): array {
+        $limpo = trim($endereco);
+        if (empty($limpo)) {
+            return ['lat' => -23.55052, 'lng' => -46.63330];
+        }
+
+        // Se não tiver menção a SP/São Paulo, adiciona para melhorar precisão
+        $termo = $limpo;
+        if (!stripos($termo, 'são paulo') && !stripos($termo, 'sp') && !stripos($termo, 'capão redondo')) {
+            $termo .= ', São Paulo, SP, Brasil';
+        } elseif (!stripos($termo, 'brasil')) {
+            $termo .= ', Brasil';
+        }
+
+        try {
+            $url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' . urlencode($termo);
+            $context = stream_context_create([
+                'http' => [
+                    'header' => "User-Agent: PaozinApp/1.0\r\n",
+                    'timeout' => 3
+                ]
+            ]);
+            $res = @file_get_contents($url, false, $context);
+            if ($res) {
+                $json = json_decode($res, true);
+                if (!empty($json[0]['lat']) && !empty($json[0]['lon'])) {
+                    return [
+                        'lat' => (float)$json[0]['lat'],
+                        'lng' => (float)$json[0]['lon']
+                    ];
+                }
+            }
+        } catch (Exception $e) {
+            // fallback
+        }
+
+        return ['lat' => -23.55052, 'lng' => -46.63330];
+    }
+
     public static function atualizarDados(int $id, array $dados): bool {
         $db = Database::getConnection();
         $nome = trim($dados['nome'] ?? '');
@@ -136,6 +230,13 @@ class Padaria {
         $senha = trim($dados['senha'] ?? '');
         $latitude = !empty($dados['latitude']) ? (float)$dados['latitude'] : null;
         $longitude = !empty($dados['longitude']) ? (float)$dados['longitude'] : null;
+
+        // Se o endereço foi fornecido e as coordenadas não, busca novas coordenadas
+        if (!empty($endereco) && ($latitude === null || $longitude === null)) {
+            $coords = self::geocodificarEndereco($endereco);
+            $latitude = $coords['lat'];
+            $longitude = $coords['lng'];
+        }
 
         if (empty($nome)) {
             return false;

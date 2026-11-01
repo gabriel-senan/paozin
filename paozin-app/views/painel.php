@@ -190,6 +190,9 @@ require_once __DIR__ . '/includes/header.php';
                         <label class="input-label">Endereço Completo (Bairro e Rua):</label>
                         <input type="text" name="endereco" class="input-field" 
                                value="<?= htmlspecialchars($padaria['endereco'] ?? '') ?>" required maxlength="150">
+                        <span style="font-size: 11.5px; color: var(--cinza); display: block; margin-top: 4px;">
+                            📍 Coordenadas no mapa: <strong><?= number_format((float)($padaria['latitude'] ?? -23.55), 4) ?>, <?= number_format((float)($padaria['longitude'] ?? -46.63), 4) ?></strong> (geocodificado automaticamente)
+                        </span>
                     </div>
 
                     <!-- Telefone / WhatsApp -->
@@ -245,9 +248,18 @@ require_once __DIR__ . '/includes/header.php';
                     <!-- Senha de Acesso do Estabelecimento -->
                     <div class="input-group" style="margin-top: 14px;">
                         <label class="input-label">Senha de Acesso ao Painel:</label>
-                        <input type="password" name="senha" class="input-field" 
-                               placeholder="Deixe em branco para manter a atual"
-                               value="<?= htmlspecialchars($padaria['senha'] ?? 'paozin123') ?>">
+                        <div style="position: relative;">
+                            <input type="password" name="senha" id="painel-senha" class="input-field"
+                                   placeholder="Deixe em branco para manter a atual"
+                                   value="<?= htmlspecialchars($padaria['senha'] ?? 'paozin123') ?>"
+                                   style="padding-right: 44px;">
+                            <button type="button" onclick="toggleVisibilidadeSenha('painel-senha', this)"
+                                    style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--cinza); padding: 6px; display: flex; align-items: center; justify-content: center;"
+                                    title="Exibir/Ocultar senha">
+                                <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            </button>
+                        </div>
                         <span style="font-size: 12px; color: var(--cinza); display: block; margin-top: 4px;">
                             Utilizada para entrar no painel via telefone ou lista de padarias.
                         </span>

@@ -140,8 +140,16 @@
 
                     <div class="input-group" style="margin-top: 14px;">
                         <label class="input-label">Senha de Acesso da Padaria:</label>
-                        <input type="password" name="senha" id="input-login-padaria-senha" class="input-field"
-                               placeholder="Digite sua senha de acesso" value="paozin123" required>
+                        <div style="position: relative;">
+                            <input type="password" name="senha" id="input-login-padaria-senha" class="input-field"
+                                   placeholder="Digite sua senha de acesso" value="paozin123" required style="padding-right: 44px;">
+                            <button type="button" onclick="toggleVisibilidadeSenha('input-login-padaria-senha', this)"
+                                    style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--cinza); padding: 6px; display: flex; align-items: center; justify-content: center;"
+                                    title="Exibir/Ocultar senha">
+                                <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            </button>
+                        </div>
                         <span style="font-size: 12px; color: var(--cinza); display: block; margin-top: 4px;">
                             Senha de segurança da padaria (Padrão: <code>paozin123</code>).
                         </span>
@@ -160,13 +168,23 @@
 
             <!-- Estado B: SIGNIN / CADASTRO DE PADARIA -->
             <div id="padaria-cadastro-state" style="display: none;">
+                <!-- Alerta se senhas não coincidirem -->
+                <?php if (isset($_GET['status']) && $_GET['status'] === 'senhas_diferentes'): ?>
+                    <div class="alerta alerta-erro" style="margin-bottom: 14px; padding: 10px 14px;">
+                        <span style="font-weight: 900; color: var(--brasa);">!</span>
+                        <div style="font-size: 13px;">
+                            <strong>As senhas não coincidem!</strong> Digite a mesma senha nos dois campos.
+                        </div>
+                    </div>
+                <?php endif; ?>
+
                 <div style="background: var(--miolo); border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 16px; border-left: 3px solid var(--crosta);">
                     <p style="font-size: 12.5px; color: var(--carvao); line-height: 1.45;">
                         Cadastre sua padaria no bairro. Você poderá avisar os vizinhos instantaneamente a cada fornada!
                     </p>
                 </div>
 
-                <form action="/cadastrar-padaria" method="POST" id="form-cadastro-padaria">
+                <form action="/cadastrar-padaria" method="POST" id="form-cadastro-padaria" onsubmit="return validarSenhasPadaria();">
                     <div class="input-group">
                         <label class="input-label">Nome da Padaria:</label>
                         <input type="text" name="nome" id="input-cadastro-padaria-nome" class="input-field"
@@ -179,12 +197,48 @@
                                placeholder="Ex: 11988880001" required>
                     </div>
 
+                    <!-- Senha com olho para exibir/ocultar -->
                     <div class="input-group" style="margin-top: 12px;">
                         <label class="input-label">Crie uma Senha de Acesso:</label>
-                        <input type="password" name="senha" class="input-field"
-                               placeholder="Ex: sua senha secreta" value="paozin123" required>
-                        <span style="font-size: 11.5px; color: var(--cinza); display: block; margin-top: 4px;">
-                            Utilizada pela sua equipe para entrar no painel.
+                        <div style="position: relative;">
+                            <input type="password" name="senha" id="cad-senha-padaria" class="input-field"
+                                   placeholder="Digite sua senha" style="padding-right: 44px;" required minlength="4">
+                            <button type="button" onclick="toggleVisibilidadeSenha('cad-senha-padaria', this)"
+                                    style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--cinza); padding: 6px; display: flex; align-items: center; justify-content: center;"
+                                    title="Exibir/Ocultar senha">
+                                <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Confirmar senha com olho para exibir/ocultar -->
+                    <div class="input-group" style="margin-top: 12px;">
+                        <label class="input-label">Confirme a Senha:</label>
+                        <div style="position: relative;">
+                            <input type="password" name="confirmar_senha" id="cad-confirma-senha-padaria" class="input-field"
+                                   placeholder="Repita a senha digitada" style="padding-right: 44px;" required minlength="4">
+                            <button type="button" onclick="toggleVisibilidadeSenha('cad-confirma-senha-padaria', this)"
+                                    style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--cinza); padding: 6px; display: flex; align-items: center; justify-content: center;"
+                                    title="Exibir/Ocultar senha">
+                                <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <span id="msg-erro-senha" style="font-size: 11.5px; color: var(--brasa); display: none; margin-top: 4px; font-weight: 700;">
+                            As senhas não coincidem.
                         </span>
                     </div>
 
@@ -372,6 +426,41 @@ function switchPadariaState(state) {
         }
     }
 })();
+
+// ---------- Olho para exibir/ocultar senha ----------
+function toggleVisibilidadeSenha(inputId, btn) {
+    var input = document.getElementById(inputId);
+    if (!input) return;
+
+    var eyeOpen = btn.querySelector('.eye-open');
+    var eyeClosed = btn.querySelector('.eye-closed');
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (eyeOpen) eyeOpen.style.display = 'none';
+        if (eyeClosed) eyeClosed.style.display = 'block';
+    } else {
+        input.type = 'password';
+        if (eyeOpen) eyeOpen.style.display = 'block';
+        if (eyeClosed) eyeClosed.style.display = 'none';
+    }
+}
+
+// ---------- Validação de confirmação de senha ----------
+function validarSenhasPadaria() {
+    var s1 = document.getElementById('cad-senha-padaria');
+    var s2 = document.getElementById('cad-confirma-senha-padaria');
+    var msg = document.getElementById('msg-erro-senha');
+
+    if (s1 && s2 && s1.value !== s2.value) {
+        if (msg) msg.style.display = 'block';
+        s2.focus();
+        return false;
+    }
+
+    if (msg) msg.style.display = 'none';
+    return true;
+}
 
 // Fechar com ESC
 document.addEventListener('keydown', function(e) {

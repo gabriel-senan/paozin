@@ -40,17 +40,23 @@ class AuthController {
     }
 
     public function cadastrarPadaria(): void {
-        $nome     = trim($_POST['nome'] ?? '');
-        $telefone = trim($_POST['telefone'] ?? '');
-        $senha    = trim($_POST['senha'] ?? 'paozin123');
-        $endereco = trim($_POST['endereco'] ?? '');
-        $precoQuilo = (float)str_replace(',', '.', $_POST['preco_pao_quilo'] ?? '15.90');
-        $precoUnidade = isset($_POST['preco_pao_unidade']) && $_POST['preco_pao_unidade'] !== '' ? (float)str_replace(',', '.', $_POST['preco_pao_unidade']) : 0.95;
-        $horarioFunc = trim($_POST['horario_funcionamento'] ?? '06:00 às 20:00');
+        $nome            = trim($_POST['nome'] ?? '');
+        $telefone        = trim($_POST['telefone'] ?? '');
+        $senha           = trim($_POST['senha'] ?? '');
+        $confirmarSenha  = trim($_POST['confirmar_senha'] ?? '');
+        $endereco        = trim($_POST['endereco'] ?? '');
+        $precoQuilo      = (float)str_replace(',', '.', $_POST['preco_pao_quilo'] ?? '15.90');
+        $precoUnidade    = isset($_POST['preco_pao_unidade']) && $_POST['preco_pao_unidade'] !== '' ? (float)str_replace(',', '.', $_POST['preco_pao_unidade']) : 0.95;
+        $horarioFunc     = trim($_POST['horario_funcionamento'] ?? '06:00 às 20:00');
         $horariosFornada = trim($_POST['horarios_fornada'] ?? '06:30, 16:30');
 
         if (empty($nome) || empty($telefone)) {
             header("Location: /?modal=padaria_cadastro&status=campos_obrigatorios");
+            exit;
+        }
+
+        if (!empty($senha) && !empty($confirmarSenha) && $senha !== $confirmarSenha) {
+            header("Location: /?modal=padaria_cadastro&status=senhas_diferentes&tel=" . urlencode($telefone));
             exit;
         }
 
