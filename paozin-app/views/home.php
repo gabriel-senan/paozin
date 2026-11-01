@@ -1,5 +1,31 @@
 <?php
-$tituloPagina = "Pãozin";
+$tituloPagina = "Pãozin — O Pão Quentinho no Seu Bairro";
+
+// Leaflet carregado no head (sem SRI)
+$extraHead = '
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+';
+
+// Padarias com coordenadas para o mapa real da landing page
+$padariasMapa = array_filter($padarias ?? [], function($p) {
+    return !empty($p['latitude']) && !empty($p['longitude']);
+});
+$padariasMapa = array_values(array_map(function($p) {
+    return [
+        'id'                    => (int)$p['id'],
+        'nome'                  => $p['nome'],
+        'endereco'              => $p['endereco'],
+        'lat'                   => (float)$p['latitude'],
+        'lng'                   => (float)$p['longitude'],
+        'nota'                  => (float)$p['nota_media'],
+        'preco'                 => (float)$p['preco_pao_quilo'],
+        'preco_unidade'         => !empty($p['preco_pao_unidade']) ? (float)$p['preco_pao_unidade'] : null,
+        'horario_funcionamento' => $p['horario_funcionamento'] ?? null,
+        'horarios_fornada'      => $p['horarios_fornada'] ?? null,
+    ];
+}, $padariasMapa));
+
 require_once __DIR__ . '/includes/header.php';
 ?>
 
@@ -117,95 +143,192 @@ require_once __DIR__ . '/includes/header.php';
             <span class="pill" style="background: var(--farinha);">Capão Redondo / SP</span>
         </div>
 
-        <div class="mapa-frame">
-            <!-- Vetor de Mapa Temático Apple Maps -->
-            <svg viewBox="0 0 900 440" style="width: 100%; height: auto; display: block;" preserveAspectRatio="xMidYMid slice">
-                <rect width="900" height="440" fill="#F2F0EB"/>
-                
-                <!-- Água / Córrego -->
-                <path d="M-10 330 C120 300 220 380 340 390 C500 405 600 360 740 380 C820 395 860 430 910 440 L910 460 L-10 460 Z" fill="#AADAFF"/>
-                
-                <!-- Parques e Praças -->
-                <ellipse cx="180" cy="110" rx="100" ry="60" fill="#C8E6B5"/>
-                <ellipse cx="680" cy="180" rx="90" ry="54" fill="#C8E6B5"/>
-                <ellipse cx="460" cy="80" rx="60" ry="36" fill="#CDE9BC"/>
+        <div class="mapa-frame" style="position: relative;">
+            <!-- Container do Mapa Leaflet -->
+            <div id="home-paozin-map" style="width: 100%; height: 460px; z-index: 1;"></div>
 
-                <!-- Quarteirões do Bairro -->
-                <g fill="#E8E4DC" opacity="0.8">
-                    <rect x="320" y="120" width="80" height="60" rx="6"/>
-                    <rect x="440" y="120" width="70" height="60" rx="6"/>
-                    <rect x="320" y="210" width="80" height="70" rx="6"/>
-                    <rect x="440" y="210" width="70" height="70" rx="6"/>
-                    <rect x="550" y="270" width="90" height="60" rx="6"/>
-                    <rect x="120" y="240" width="90" height="60" rx="6"/>
-                </g>
-
-                <!-- Rodovia Arterial Amarela -->
-                <path d="M-10 200 L910 170" stroke="#FFD983" stroke-width="16" stroke-linecap="round"/>
-                <path d="M-10 200 L910 170" stroke="#FFF0C9" stroke-width="6" stroke-linecap="round" opacity="0.75"/>
-
-                <!-- Vias e Ruas Locais com Contorno Quente -->
-                <g stroke="#E3DED4" stroke-width="12" stroke-linecap="round" fill="none">
-                    <path d="M280 -10 L280 450"/>
-                    <path d="M530 -10 L530 450"/>
-                    <path d="M-10 100 L910 80"/>
-                    <path d="M-10 290 L910 270"/>
-                    <path d="M-10 390 L910 360"/>
-                </g>
-                <g stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" fill="none">
-                    <path d="M280 -10 L280 450"/>
-                    <path d="M530 -10 L530 450"/>
-                    <path d="M-10 100 L910 80"/>
-                    <path d="M-10 290 L910 270"/>
-                    <path d="M-10 390 L910 360"/>
-                </g>
-
-                <!-- Nomes de Ruas com Halo Protetor -->
-                <g font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#9A9086" text-anchor="middle">
-                    <text x="280" y="60" transform="rotate(90 280 60)" stroke="#F2F0EB" stroke-width="3" paint-order="stroke">R. das Flores</text>
-                    <text x="530" y="60" transform="rotate(90 530 60)" stroke="#F2F0EB" stroke-width="3" paint-order="stroke">Av. do Pão</text>
-                    <text x="410" y="96" stroke="#F2F0EB" stroke-width="3" paint-order="stroke">Rua Central</text>
-                    <text x="410" y="284" stroke="#F2F0EB" stroke-width="3" paint-order="stroke">R. Padre Anchieta</text>
-                    <text x="180" y="115" stroke="#C8E6B5" stroke-width="3" paint-order="stroke">Praça da Matriz</text>
-                </g>
-
-                <!-- Pinos Pãozin Ativos -->
-                <!-- Padaria 1: Fornada de Ouro (Fornada Ativa com Anel Pulsante) -->
-                <g transform="translate(370, 180)">
-                    <circle cx="20" cy="22" r="30" fill="none" stroke="#58CC02" stroke-width="4" class="pulse-ring"/>
-                    <use href="#pin-pao" x="0" y="0" width="40" height="46"/>
-                    <text x="20" y="62" font-family="Nunito, sans-serif" font-size="12" font-weight="900" fill="#5C3410" text-anchor="middle" stroke="#F2F0EB" stroke-width="3" paint-order="stroke">Padaria Fornada de Ouro</text>
-                </g>
-
-                <!-- Padaria 2: Pão da Vila -->
-                <g transform="translate(620, 240)">
-                    <use href="#pin-pao" x="0" y="0" width="34" height="40" opacity="0.85"/>
-                    <text x="17" y="54" font-family="Nunito, sans-serif" font-size="11.5" font-weight="900" fill="#5C3410" text-anchor="middle" stroke="#F2F0EB" stroke-width="3" paint-order="stroke">Panificadora Pão da Vila</text>
-                </g>
-
-                <!-- Posição do Usuário (Ponto Azul Apple) -->
-                <circle cx="310" cy="290" r="16" fill="#1CB0F6" opacity="0.18"/>
-                <circle cx="310" cy="290" r="8" fill="#1CB0F6" stroke="#fff" stroke-width="3"/>
-            </svg>
+            <!-- Botão de Minha Localização no Mapa -->
+            <button type="button" onclick="centralizarMinhaLocalizacaoHome()" class="btn-3d btn-ghost" 
+                    title="Minha Localização"
+                    style="position: absolute; top: 16px; right: 16px; z-index: 10; padding: 8px 14px; font-size: 12px; background: rgba(255,255,255,0.92); backdrop-filter: blur(8px); display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 14px;"></span> Minha Localização
+            </button>
 
             <!-- Card Glassmorphism Flutuante sobre o Mapa -->
-            <div class="glass mapa-overlay-card">
+            <div class="glass mapa-overlay-card" id="home-mapa-overlay" style="z-index: 10;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
                     <div>
-                        <h4 style="font-size: 16px; font-weight: 900; color: var(--carvao);">Padaria Fornada de Ouro</h4>
-                        <p style="font-size: 12.5px; color: var(--cinza);">Rua das Flores, 120 · 3 min a pé</p>
+                        <h4 id="card-padaria-nome" style="font-size: 16px; font-weight: 900; color: var(--carvao);">Padaria Fornada de Ouro</h4>
+                        <p id="card-padaria-endereco" style="font-size: 12.5px; color: var(--cinza);">Rua das Flores, 120 · Bairro Central</p>
                     </div>
                     <span class="badge quente">Saído agora</span>
                 </div>
                 <div style="display: flex; gap: 8px; margin: 12px 0;">
-                    <span class="pill" style="font-size: 12px; flex: 1; justify-content: center; font-weight: 700;">R$ 15,90/kg</span>
-                    <span class="pill" style="font-size: 12px; flex: 1; justify-content: center; font-weight: 700;">Nota 4.9</span>
+                    <span id="card-padaria-preco" class="pill" style="font-size: 12px; flex: 1; justify-content: center; font-weight: 700;">R$ 15,90/kg</span>
+                    <span id="card-padaria-nota" class="pill" style="font-size: 12px; flex: 1; justify-content: center; font-weight: 700;">Nota 4.9</span>
+                </div>
+                <div id="card-padaria-extra" style="font-size: 11.5px; color: var(--cinza); margin-bottom: 12px;">
+                    ⏱ Funcionamento: 06:00 às 20:00
                 </div>
                 <a href="#padarias" class="btn-3d btn-fornada" style="width: 100%; padding: 11px; font-size: 13px;">
                     Quero o Aviso Desta Padaria
                 </a>
             </div>
         </div>
+
+        <script>
+        var PADARIAS_HOME = <?= json_encode($padariasMapa, JSON_UNESCAPED_UNICODE) ?>;
+        var homeMap = null;
+        var homeUserMarker = null;
+
+        function criarIconePao(cor, corBorda, tamanho) {
+            var h = Math.round(tamanho * 1.3);
+            var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 52" width="' + tamanho + '" height="' + h + '">'
+                + '<path d="M20 2C11.2 2 4 9.2 4 18c0 11.7 16 32 16 32s16-20.3 16-32C36 9.2 28.8 2 20 2z"'
+                + ' fill="' + cor + '" stroke="' + corBorda + '" stroke-width="2.5"/>'
+                + '<circle cx="20" cy="18" r="7" fill="white" opacity="0.9"/>'
+                + '</svg>';
+            return L.divIcon({
+                html: svg,
+                className: '',
+                iconSize: [tamanho, h],
+                iconAnchor: [tamanho / 2, h],
+                popupAnchor: [0, -(h - 4)]
+            });
+        }
+
+        function selecionarPadariaCard(p) {
+            var elNome = document.getElementById('card-padaria-nome');
+            var elEnd  = document.getElementById('card-padaria-endereco');
+            var elPrc  = document.getElementById('card-padaria-preco');
+            var elNota = document.getElementById('card-padaria-nota');
+            var elExt  = document.getElementById('card-padaria-extra');
+
+            if (elNome) elNome.textContent = p.nome;
+            if (elEnd)  elEnd.textContent  = p.endereco;
+            if (elPrc)  {
+                var txt = 'R$ ' + p.preco.toFixed(2).replace('.', ',') + '/kg';
+                if (p.preco_unidade) txt += ' (R$ ' + p.preco_unidade.toFixed(2).replace('.', ',') + '/un)';
+                elPrc.textContent = txt;
+            }
+            if (elNota) elNota.textContent = 'Nota ' + p.nota.toFixed(1).replace('.', ',');
+            if (elExt) {
+                var extra = [];
+                if (p.horario_funcionamento) extra.push('⏱ ' + p.horario_funcionamento);
+                if (p.horarios_fornada) extra.push('🥖 Fornadas: ' + p.horarios_fornada);
+                elExt.innerHTML = extra.join(' &bull; ') || 'Fornadas no bairro';
+            }
+        }
+
+        function initHomeMap() {
+            var container = document.getElementById('home-paozin-map');
+            if (!container || typeof L === 'undefined') return;
+
+            var defaultLat = -23.555;
+            var defaultLng = -46.645;
+            if (PADARIAS_HOME.length > 0) {
+                defaultLat = PADARIAS_HOME[0].lat;
+                defaultLng = PADARIAS_HOME[0].lng;
+            }
+
+            homeMap = L.map('home-paozin-map', {
+                center: [defaultLat, defaultLng],
+                zoom: 14,
+                zoomControl: true,
+                attributionControl: true
+            });
+
+            // Esri Light Gray Canvas (visual Apple Maps, sem chave)
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; DeLorme, NAVTEQ',
+                maxZoom: 16
+            }).addTo(homeMap);
+
+            var iconePadaria = criarIconePao('#E89B3C', '#B36B1F', 38);
+            var boundsPoints = [];
+
+            PADARIAS_HOME.forEach(function(p, idx) {
+                boundsPoints.push([p.lat, p.lng]);
+
+                var precoUnTxt = p.preco_unidade ? ' &bull; R$ ' + p.preco_unidade.toFixed(2).replace('.', ',') + '/un' : '';
+                var infoHorarios = '';
+                if (p.horario_funcionamento) infoHorarios += '<div style="font-size:11.5px;color:#6b5d4e;margin-top:4px;">⏱ ' + p.horario_funcionamento + '</div>';
+                if (p.horarios_fornada) infoHorarios += '<div style="font-size:11.5px;color:#58CC02;font-weight:700;margin-top:2px;">🥖 Fornadas: ' + p.horarios_fornada + '</div>';
+
+                var popupContent = '<div style="font-family:Inter,sans-serif;min-width:200px;line-height:1.4;">'
+                    + '<strong style="font-size:14px;display:block;margin-bottom:3px;">' + p.nome + '</strong>'
+                    + '<span style="font-size:12px;color:#8A7C6B;display:block;margin-bottom:5px;">' + p.endereco + '</span>'
+                    + '<span style="font-size:12.5px;font-weight:600;">R$ ' + p.preco.toFixed(2).replace('.', ',') + '/kg' + precoUnTxt + ' &middot; Nota ' + p.nota.toFixed(1).replace('.', ',') + '</span>'
+                    + infoHorarios
+                    + '</div>';
+
+                var marker = L.marker([p.lat, p.lng], { icon: iconePadaria }).addTo(homeMap);
+                marker.bindPopup(popupContent, { maxWidth: 260 });
+                marker.on('click', function() {
+                    selecionarPadariaCard(p);
+                });
+
+                if (idx === 0) {
+                    selecionarPadariaCard(p);
+                }
+            });
+
+            if (boundsPoints.length > 1) {
+                homeMap.fitBounds(L.latLngBounds(boundsPoints), { padding: [50, 50], maxZoom: 15 });
+            }
+
+            // Tenta obter geolocalização do usuário suavemente
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(pos) {
+                    var uLat = pos.coords.latitude;
+                    var uLng = pos.coords.longitude;
+                    var iconeUser = L.divIcon({
+                        html: '<div style="width:18px;height:18px;border-radius:50%;background:#1CB0F6;border:3px solid #fff;box-shadow:0 0 0 4px rgba(28,176,246,0.35);"></div>',
+                        className: '',
+                        iconSize: [18, 18],
+                        iconAnchor: [9, 9]
+                    });
+
+                    homeUserMarker = L.marker([uLat, uLng], { icon: iconeUser, zIndexOffset: 2000 })
+                        .addTo(homeMap)
+                        .bindPopup('<strong style="font-family:Inter,sans-serif;">Você está aqui</strong>');
+
+                    boundsPoints.push([uLat, uLng]);
+                    homeMap.fitBounds(L.latLngBounds(boundsPoints), { padding: [60, 60], maxZoom: 15 });
+                }, function() {
+                    // Sem permissão - mantém foco nas padarias
+                }, { timeout: 6000, maximumAge: 60000 });
+            }
+        }
+
+        function centralizarMinhaLocalizacaoHome() {
+            if (!homeMap) return;
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(pos) {
+                    var uLat = pos.coords.latitude;
+                    var uLng = pos.coords.longitude;
+                    if (!homeUserMarker) {
+                        var iconeUser = L.divIcon({
+                            html: '<div style="width:18px;height:18px;border-radius:50%;background:#1CB0F6;border:3px solid #fff;box-shadow:0 0 0 4px rgba(28,176,246,0.35);"></div>',
+                            className: '',
+                            iconSize: [18, 18],
+                            iconAnchor: [9, 9]
+                        });
+                        homeUserMarker = L.marker([uLat, uLng], { icon: iconeUser, zIndexOffset: 2000 }).addTo(homeMap);
+                    }
+                    homeMap.setView([uLat, uLng], 15, { animate: true });
+                    homeUserMarker.bindPopup('<strong style="font-family:Inter,sans-serif;">Você está aqui</strong>').openPopup();
+                });
+            }
+        }
+
+        // Garante que o mapa inicializa após o carregamento da biblioteca Leaflet
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initHomeMap);
+        } else {
+            setTimeout(initHomeMap, 50);
+        }
+        </script>
 
     </div>
 </section>
@@ -244,19 +367,35 @@ require_once __DIR__ . '/includes/header.php';
                         </div>
 
                         <!-- Mini Stats do Estabelecimento -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0 10px;">
                             <div style="background: var(--miolo); border: 1px solid var(--linha); border-radius: var(--r-md); padding: 12px; text-align: center;">
                                 <span style="font-size: 12px; color: var(--cinza); display: block;">Preço do Quilo</span>
-                                <strong style="font-size: 18px; color: var(--crosta-fundo);">
+                                <strong style="font-size: 17px; color: var(--crosta-fundo);">
                                     R$ <?= number_format((float)$p['preco_pao_quilo'], 2, ',', '.') ?>
                                 </strong>
                             </div>
                             <div style="background: var(--miolo); border: 1px solid var(--linha); border-radius: var(--r-md); padding: 12px; text-align: center;">
-                                <span style="font-size: 12px; color: var(--cinza); display: block;">Status da Fornalha</span>
-                                <strong style="font-size: 14px; color: var(--fornada-escura);">
-                                    Fornadas Ativas
+                                <span style="font-size: 12px; color: var(--cinza); display: block;">Valor por Unidade</span>
+                                <strong style="font-size: 17px; color: var(--crosta-fundo);">
+                                    <?= !empty($p['preco_pao_unidade']) ? 'R$ ' . number_format((float)$p['preco_pao_unidade'], 2, ',', '.') : '—' ?>
                                 </strong>
                             </div>
+                        </div>
+
+                        <!-- Horários de funcionamento e saídas de pão -->
+                        <div style="background: #FDFBF7; border: 1px solid var(--linha); border-radius: var(--r-md); padding: 10px 14px; margin-bottom: 18px; font-size: 12.5px;">
+                            <?php if (!empty($p['horario_funcionamento'])): ?>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                    <span style="color: var(--cinza);">Funcionamento:</span>
+                                    <span style="color: var(--carvao); font-weight: 600;"><?= htmlspecialchars($p['horario_funcionamento']) ?></span>
+                                </div>
+                            <?php endif; ?>
+                            <?php if (!empty($p['horarios_fornada'])): ?>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: var(--cinza);">Fornadas fixas:</span>
+                                    <span style="color: var(--fornada-escura); font-weight: 700;"><?= htmlspecialchars($p['horarios_fornada']) ?></span>
+                                </div>
+                            <?php endif; ?>
                         </div>
 
                         <!-- Formulário de Inscrição em 1 Clique -->

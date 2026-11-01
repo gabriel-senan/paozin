@@ -58,10 +58,158 @@ class Padaria {
             $stmt2->execute([$id, $preco, $totalAvisados]);
 
             $db->commit();
-            return true;
         } catch (Exception $e) {
             $db->rollBack();
             return false;
         }
+    }
+
+    public static function buscarPorTelefone(string $telefone): ?array {
+        $db = Database::getConnection();
+        $clean = preg_replace('/\D/', '', $telefone);
+        if (strlen($clean) >= 8) {
+            $lastDigits = substr($clean, -8);
+            $stmt = $db->prepare("SELECT * FROM padarias WHERE telefone = ? OR replace(replace(replace(replace(telefone, ' ', ''), '-', ''), '(', ''), ')', '') LIKE ? LIMIT 1");
+            $stmt->execute([$clean, '%' . $lastDigits]);
+            $res = $stmt->fetch();
+            if ($res) return $res;
+        }
+
+        $stmt = $db->prepare("SELECT * FROM padarias WHERE telefone = ? LIMIT 1");
+        $stmt->execute([$clean]);
+        $res = $stmt->fetch();
+        return $res ?: null;
+    }
+
+    public static function cadastrar(array $dados): ?int {
+        $db = Database::getConnection();
+        $nome = trim($dados['nome'] ?? '');
+        $endereco = trim($dados['endereco'] ?? '');
+        $telefone = preg_replace('/\D/', '', $dados['telefone'] ?? '');
+        $precoQuilo = (float)($dados['preco_pao_quilo'] ?? 14.90);
+        $precoUnidade = isset($dados['preco_pao_unidade']) && $dados['preco_pao_unidade'] !== '' ? (float)$dados['preco_pao_unidade'] : null;
+        $horarioFunc = trim($dados['horario_funcionamento'] ?? '06:00 às 20:00');
+        $horariosFornada = trim($dados['horarios_fornada'] ?? '06:30, 16:30');
+        $senha = trim($dados['senha'] ?? 'paozin123');
+        $latitude = !empty($dados['latitude']) ? (float)$dados['latitude'] : -23.55052;
+        $longitude = !empty($dados['longitude']) ? (float)$dados['longitude'] : -46.63330;
+
+        if (empty($nome) || empty($telefone)) {
+            return null;
+        }
+
+        try {
+            $stmt = $db->prepare("
+                INSERT INTO padarias (
+                    nome, endereco, telefone, preco_pao_quilo, preco_pao_unidade,
+                    horario_funcionamento, horarios_fornada, senha, latitude, longitude,
+                    nota_media, status_assinatura
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 5.0, 'ativo')
+            ");
+            $stmt->execute([
+                $nome,
+                $endereco ?: 'Endereço a definir',
+                $telefone,
+                $precoQuilo,
+                $precoUnidade,
+                $horarioFunc,
+                $horariosFornada,
+                $senha ?: 'paozin123',
+                $latitude,
+                $longitude
+            ]);
+            return (int)$db->lastInsertId();
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    public static function atualizarDados(int $id, array $dados): bool {
+        $db = Database::getConnection();
+        $nome = trim($dados['nome'] ?? '');
+        $endereco = trim($dados['endereco'] ?? '');
+        $telefone = preg_replace('/\D/', '', $dados['telefone'] ?? '');
+        $precoQuilo = (float)($dados['preco_pao_quilo'] ?? 14.90);
+        $precoUnidade = isset($dados['preco_pao_unidade']) && $dados['preco_pao_unidade'] !== '' ? (float)$dados['preco_pao_unidade'] : null;
+        $horarioFunc = trim($dados['horario_funcionamento'] ?? '');
+        $horariosFornada = trim($dados['horarios_fornada'] ?? '');
+        $senha = trim($dados['senha'] ?? '');
+        $latitude = !empty($dados['latitude']) ? (float)$dados['latitude'] : null;
+        $longitude = !empty($dados['longitude']) ? (float)$dados['longitude'] : null;
+
+        if (empty($nome)) {
+            return false;
+        }
+
+        try {
+            if (!empty($senha)) {
+                $stmt = $db->prepare("
+                    UPDATE padarias SET
+                        nome = ?,
+                        endereco = ?,
+                        telefone = ?,
+                        preco_pao_quilo = ?,
+                        preco_pao_unidade = ?,
+                        horario_funcionamento = ?,
+                        horarios_fornada = ?,
+                        senha = ?,
+                        latitude = COALESCE(?, latitude),
+                        longitude = COALESCE(?, longitude),
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ");
+                return $stmt->execute([
+                    $nome,
+                    $endereco,
+                    $telefone,
+                    $precoQuilo,
+                    $precoUnidade,
+                    $horarioFunc,
+                    $horariosFornada,
+                    $senha,
+                    $latitude,
+                    $longitude,
+                    $id
+                ]);
+            } else {
+                $stmt = $db->prepare("
+                    UPDATE padarias SET
+                        nome = ?,
+                        endereco = ?,
+                        telefone = ?,
+                        preco_pao_quilo = ?,
+                        preco_pao_unidade = ?,
+                        horario_funcionamento = ?,
+                        horarios_fornada = ?,
+                        latitude = COALESCE(?, latitude),
+                        longitude = COALESCE(?, longitude),
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ");
+                return $stmt->execute([
+                    $nome,
+                    $endereco,
+                    $telefone,
+                    $precoQuilo,
+                    $precoUnidade,
+                    $horarioFunc,
+                    $horariosFornada,
+                    $latitude,
+                    $longitude,
+                    $id
+                ]);
+            }
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    public static function validarSenha(array $padaria, string $senhaDigitada): bool {
+        $senhaBanco = trim($padaria['senha'] ?? '');
+        if (empty($senhaBanco)) {
+            // Se ainda não tinha senha configurada, aceita o padrão paozin123
+            return $senhaDigitada === 'paozin123';
+        }
+        return $senhaBanco === trim($senhaDigitada);
     }
 }

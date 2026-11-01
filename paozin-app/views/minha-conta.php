@@ -23,6 +23,9 @@ $padariasMapa = array_map(function($p) use ($idsSeguidas) {
         'lng'     => (float)$p['longitude'],
         'nota'    => (float)$p['nota_media'],
         'preco'   => (float)$p['preco_pao_quilo'],
+        'preco_unidade' => !empty($p['preco_pao_unidade']) ? (float)$p['preco_pao_unidade'] : null,
+        'horario_funcionamento' => $p['horario_funcionamento'] ?? null,
+        'horarios_fornada' => $p['horarios_fornada'] ?? null,
         'segue'   => in_array((int)$p['id'], $idsSeguidas ?? []),
     ];
 }, $padariasMapa);
@@ -255,16 +258,26 @@ function inicializarMapa(lat, lng) {
         var badge  = p.segue
             ? '<br><span style="display:inline-block;margin-top:6px;padding:2px 10px;background:#58CC02;color:#fff;border-radius:20px;font-size:11px;font-weight:700;">Você segue</span>'
             : '';
-        var popup  = '<div style="font-family:Inter,sans-serif;min-width:190px;line-height:1.4;">'
+        var precoUnTxt = p.preco_unidade ? ' &bull; R$ ' + p.preco_unidade.toFixed(2).replace('.', ',') + '/un' : '';
+        var extraInfo = '';
+        if (p.horario_funcionamento) {
+            extraInfo += '<div style="font-size:11.5px;color:#6b5d4e;margin-top:4px;">⏱ ' + p.horario_funcionamento + '</div>';
+        }
+        if (p.horarios_fornada) {
+            extraInfo += '<div style="font-size:11.5px;color:#58CC02;font-weight:700;margin-top:2px;">🥖 Fornadas: ' + p.horarios_fornada + '</div>';
+        }
+
+        var popup  = '<div style="font-family:Inter,sans-serif;min-width:210px;line-height:1.4;">'
             + '<strong style="font-size:14px;display:block;margin-bottom:3px;">' + p.nome + '</strong>'
             + '<span style="font-size:12px;color:#8A7C6B;display:block;margin-bottom:5px;">' + p.endereco + '</span>'
-            + '<span style="font-size:12.5px;">R$ ' + p.preco.toFixed(2).replace('.', ',') + '/kg &middot; Nota ' + p.nota.toFixed(1).replace('.', ',') + '</span>'
+            + '<span style="font-size:12.5px;font-weight:600;">R$ ' + p.preco.toFixed(2).replace('.', ',') + '/kg' + precoUnTxt + ' &middot; Nota ' + p.nota.toFixed(1).replace('.', ',') + '</span>'
+            + extraInfo
             + badge
             + '</div>';
 
         L.marker([p.lat, p.lng], { icon: icone })
             .addTo(leafletMap)
-            .bindPopup(popup, { maxWidth: 250 });
+            .bindPopup(popup, { maxWidth: 260 });
     });
 
     // Ajusta bounds para mostrar usuário + todas as padarias

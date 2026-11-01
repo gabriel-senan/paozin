@@ -31,6 +31,12 @@ if ($uri === '/' && $method === 'GET') {
 } elseif ($uri === '/login-padaria' && $method === 'POST') {
     $controller = new AuthController();
     $controller->loginPadaria();
+} elseif ($uri === '/cadastrar-padaria' && $method === 'POST') {
+    $controller = new AuthController();
+    $controller->cadastrarPadaria();
+} elseif ($uri === '/painel/salvar' && $method === 'POST') {
+    $controller = new AuthController();
+    $controller->salvarPadaria();
 } elseif ($uri === '/login-cliente' && $method === 'POST') {
     $controller = new AuthController();
     $controller->loginCliente();

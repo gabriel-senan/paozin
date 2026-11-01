@@ -52,6 +52,8 @@ class Database {
 
                 if ($novoBanco) {
                     self::inicializarSqlite(self::$instance);
+                } else {
+                    self::garantirColunasPadarias(self::$instance);
                 }
 
                 return self::$instance;
@@ -75,7 +77,11 @@ class Database {
                 endereco TEXT NOT NULL,
                 latitude REAL NULL,
                 longitude REAL NULL,
+                telefone TEXT NULL,
                 preco_pao_quilo REAL NOT NULL DEFAULT 14.90,
+                preco_pao_unidade REAL NULL DEFAULT 0.95,
+                horario_funcionamento TEXT NULL DEFAULT '06:00 às 20:00',
+                horarios_fornada TEXT NULL DEFAULT '06:30, 16:30',
                 nota_media REAL DEFAULT 5.00,
                 status_assinatura TEXT DEFAULT 'ativo',
                 ultima_fornada DATETIME NULL,
@@ -137,6 +143,34 @@ class Database {
             (1, 1, 5, 'Pão crocante e quentinho no meio da tarde! Notificação perfeita.'),
             (1, 2, 5, 'O melhor pão francês da região.');
         ");
+    }
+
+    private static function garantirColunasPadarias(PDO $db): void {
+        try {
+            $cols = $db->query("PRAGMA table_info(padarias)")->fetchAll(PDO::FETCH_COLUMN, 1);
+            if (!in_array('telefone', $cols)) {
+                $db->exec("ALTER TABLE padarias ADD COLUMN telefone TEXT NULL;");
+            }
+            if (!in_array('preco_pao_unidade', $cols)) {
+                $db->exec("ALTER TABLE padarias ADD COLUMN preco_pao_unidade REAL NULL DEFAULT 0.95;");
+            }
+            if (!in_array('horario_funcionamento', $cols)) {
+                $db->exec("ALTER TABLE padarias ADD COLUMN horario_funcionamento TEXT NULL DEFAULT '06:00 às 20:00';");
+            }
+            if (!in_array('horarios_fornada', $cols)) {
+                $db->exec("ALTER TABLE padarias ADD COLUMN horarios_fornada TEXT NULL DEFAULT '06:30, 16:30';");
+            }
+            if (!in_array('senha', $cols)) {
+                $db->exec("ALTER TABLE padarias ADD COLUMN senha TEXT NULL DEFAULT 'paozin123';");
+            }
+
+            // Atribui telefones default e senhas para os seeds se estiverem vazios
+            $db->exec("UPDATE padarias SET telefone = '11988880001', preco_pao_unidade = 0.95, horario_funcionamento = '06:00 às 20:00', horarios_fornada = '06:30, 16:30', senha = COALESCE(NULLIF(senha, ''), 'paozin123') WHERE id = 1 AND (telefone IS NULL OR telefone = '');");
+            $db->exec("UPDATE padarias SET telefone = '11988880002', preco_pao_unidade = 0.90, horario_funcionamento = '06:00 às 21:00', horarios_fornada = '07:00, 17:00', senha = COALESCE(NULLIF(senha, ''), 'paozin123') WHERE id = 2 AND (telefone IS NULL OR telefone = '');");
+            $db->exec("UPDATE padarias SET senha = 'paozin123' WHERE senha IS NULL OR senha = '';");
+        } catch (Exception $e) {
+            // Silencioso se der erro não-crítico
+        }
     }
 
     private static function loadEnv(): void {

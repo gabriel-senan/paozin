@@ -6,7 +6,6 @@
         <button class="modal-close" onclick="closeLoginModal();">&times;</button>
         
         <div style="text-align: center; margin-bottom: 20px;">
-            <svg viewBox="0 0 100 116" style="width: 38px; height: 44px; margin-bottom: 6px;"><use href="#pin-pao"/></svg>
             <h2 style="font-size: 24px;">Entrar no Pãozin</h2>
             <p style="font-size: 13.5px; color: var(--cinza);">Acesse o serviço de acordo com o seu perfil</p>
         </div>
@@ -84,43 +83,158 @@
 
         </div>
 
-        <!-- ABA 2: LOGIN PADARIA -->
+        <!-- ABA 2: PADARIA (sub-estados: login com telefone ou lista / signin/cadastro) -->
         <div id="tab-padaria" class="tab-pane">
-            <form action="/login-padaria" method="POST">
-                <div class="input-group">
-                    <label class="input-label">Selecione seu Estabelecimento:</label>
-                    <select name="padaria_id" class="input-field" style="cursor: pointer;" required>
-                        <?php 
-                        try {
-                            $listaPadarias = Padaria::listarTodas();
-                            foreach ($listaPadarias as $pad) {
-                                echo '<option value="' . (int)$pad['id'] . '">' . htmlspecialchars($pad['nome']) . ' (R$ ' . number_format((float)$pad['preco_pao_quilo'], 2, ',', '.') . '/kg)</option>';
+
+            <!-- Mensagem de erro de senha/login -->
+            <?php if (isset($_GET['status']) && $_GET['status'] === 'senha_incorreta'): ?>
+                <div class="alerta alerta-erro" style="margin-bottom: 16px; padding: 10px 14px;">
+                    <span style="font-weight: 900; color: var(--brasa);">!</span>
+                    <div style="font-size: 13px;">
+                        <strong>Senha Incorreta!</strong> Verifique a senha de acesso da sua padaria.
+                    </div>
+                </div>
+            <?php elseif (isset($_GET['status']) && $_GET['status'] === 'erro_login_padaria'): ?>
+                <div class="alerta alerta-erro" style="margin-bottom: 16px; padding: 10px 14px;">
+                    <span style="font-weight: 900; color: var(--brasa);">!</span>
+                    <div style="font-size: 13px;">
+                        <strong>Padaria não encontrada!</strong> Confira o telefone ou selecione na lista.
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Estado A: LOGIN PADARIA -->
+            <div id="padaria-login-state">
+                <form action="/login-padaria" method="POST" id="form-login-padaria">
+                    <div class="input-group">
+                        <label class="input-label">Telefone / WhatsApp da Padaria:</label>
+                        <input type="tel" name="telefone" id="input-login-padaria-tel" class="input-field"
+                               placeholder="Ex: 11988880001" autofocus>
+                        <span style="font-size: 12px; color: var(--cinza); display: block; margin-top: 4px;">
+                            Digite o telefone cadastrado do seu estabelecimento.
+                        </span>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 10px; margin: 14px 0;">
+                        <div style="flex: 1; height: 1px; background: var(--linha);"></div>
+                        <span style="font-size: 11px; color: var(--cinza); font-weight: 700; text-transform: uppercase;">ou selecione da lista</span>
+                        <div style="flex: 1; height: 1px; background: var(--linha);"></div>
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">Estabelecimentos Cadastrados:</label>
+                        <select name="padaria_id" class="input-field" style="cursor: pointer;">
+                            <option value="">Escolha sua padaria</option>
+                            <?php 
+                            try {
+                                $listaPadarias = Padaria::listarTodas();
+                                foreach ($listaPadarias as $pad) {
+                                    echo '<option value="' . (int)$pad['id'] . '">' . htmlspecialchars($pad['nome']) . ' (' . htmlspecialchars($pad['telefone'] ?? 'sem tel') . ')</option>';
+                                }
+                            } catch (Exception $e) {
+                                echo '<option value="1">Padaria Fornada de Ouro</option>';
                             }
-                        } catch (Exception $e) {
-                            echo '<option value="1">Padaria Fornada de Ouro</option>';
-                        }
-                        ?>
-                    </select>
-                </div>
+                            ?>
+                        </select>
+                    </div>
 
-                <div class="input-group" style="margin-top: 14px;">
-                    <label class="input-label">Código de Acesso do Balcão:</label>
-                    <input type="password" name="codigo_acesso" class="input-field" placeholder="Padrão do MVP (opcional)" value="paozin123">
-                    <span style="font-size: 12px; color: var(--cinza); display: block; margin-top: 4px;">
-                        Acesso simplificado de balcão para disparo rápido da fornalha.
-                    </span>
-                </div>
+                    <div class="input-group" style="margin-top: 14px;">
+                        <label class="input-label">Senha de Acesso da Padaria:</label>
+                        <input type="password" name="senha" id="input-login-padaria-senha" class="input-field"
+                               placeholder="Digite sua senha de acesso" value="paozin123" required>
+                        <span style="font-size: 12px; color: var(--cinza); display: block; margin-top: 4px;">
+                            Senha de segurança da padaria (Padrão: <code>paozin123</code>).
+                        </span>
+                    </div>
 
-                <button type="submit" class="btn-3d btn-fornada" style="width: 100%; margin-top: 10px;">
-                    Entrar no Painel do Padeiro
-                </button>
-            </form>
+                    <button type="submit" class="btn-3d btn-fornada" style="width: 100%; margin-top: 16px;">
+                        Entrar
+                    </button>
 
-            <div style="margin-top: 20px; text-align: center; border-top: 1px dashed var(--linha); padding-top: 14px;">
-                <p style="font-size: 12.5px; color: var(--cinza);">
-                    Quer cadastrar sua padaria no Pãozin? <a href="/#padaria-b2b" onclick="closeLoginModal();" style="color: var(--crosta-escura);">Saiba como por R$ 20/mês</a>
-                </p>
+                    <!-- Botão de Signin de destaque logo abaixo do Entrar -->
+                    <button type="button" onclick="switchPadariaState('cadastro')" class="btn-3d btn-crosta" style="width: 100%; margin-top: 10px; padding: 12px 18px; font-size: 13.5px;">
+                        Cadastrar
+                    </button>
+                </form>
             </div>
+
+            <!-- Estado B: SIGNIN / CADASTRO DE PADARIA -->
+            <div id="padaria-cadastro-state" style="display: none;">
+                <div style="background: var(--miolo); border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 16px; border-left: 3px solid var(--crosta);">
+                    <p style="font-size: 12.5px; color: var(--carvao); line-height: 1.45;">
+                        Cadastre sua padaria no bairro. Você poderá avisar os vizinhos instantaneamente a cada fornada!
+                    </p>
+                </div>
+
+                <form action="/cadastrar-padaria" method="POST" id="form-cadastro-padaria">
+                    <div class="input-group">
+                        <label class="input-label">Nome da Padaria:</label>
+                        <input type="text" name="nome" id="input-cadastro-padaria-nome" class="input-field"
+                               placeholder="Ex: Padaria Estrela do Pão" required maxlength="100">
+                    </div>
+
+                    <div class="input-group" style="margin-top: 12px;">
+                        <label class="input-label">Telefone / WhatsApp da Padaria:</label>
+                        <input type="tel" name="telefone" id="input-cadastro-padaria-tel" class="input-field"
+                               placeholder="Ex: 11988880001" required>
+                    </div>
+
+                    <div class="input-group" style="margin-top: 12px;">
+                        <label class="input-label">Crie uma Senha de Acesso:</label>
+                        <input type="password" name="senha" class="input-field"
+                               placeholder="Ex: sua senha secreta" value="paozin123" required>
+                        <span style="font-size: 11.5px; color: var(--cinza); display: block; margin-top: 4px;">
+                            Utilizada pela sua equipe para entrar no painel.
+                        </span>
+                    </div>
+
+                    <div class="input-group" style="margin-top: 12px;">
+                        <label class="input-label">Endereço Completo:</label>
+                        <input type="text" name="endereco" class="input-field"
+                               placeholder="Ex: Rua das Flores, 120 - Centro" required>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px;">
+                        <div class="input-group">
+                            <label class="input-label">Preço/Kg (R$):</label>
+                            <input type="text" name="preco_pao_quilo" class="input-field"
+                                   placeholder="Ex: 15.90" value="15.90" required>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Preço/Unid. (R$):</label>
+                            <input type="text" name="preco_pao_unidade" class="input-field"
+                                   placeholder="Ex: 0.95" value="0.95">
+                        </div>
+                    </div>
+
+                    <div class="input-group" style="margin-top: 12px;">
+                        <label class="input-label">Horário de Funcionamento:</label>
+                        <input type="text" name="horario_funcionamento" class="input-field"
+                               placeholder="Ex: 06:00 às 20:00" value="06:00 às 20:00">
+                    </div>
+
+                    <div class="input-group" style="margin-top: 12px;">
+                        <label class="input-label">Horários Fixos de Fornada (opcional):</label>
+                        <input type="text" name="horarios_fornada" class="input-field"
+                               placeholder="Ex: 06:30, 16:30 (ou 'Sem horário fixo')">
+                    </div>
+
+                    <button type="submit" class="btn-3d btn-fornada" style="width: 100%; margin-top: 16px;">
+                        Criar Cadastro da Padaria
+                    </button>
+                </form>
+
+                <div style="margin-top: 16px; text-align: center;">
+                    <p style="font-size: 13px; color: var(--cinza);">
+                        Já tem cadastro?
+                        <button type="button" onclick="switchPadariaState('login')"
+                                style="background: none; border: none; cursor: pointer; color: var(--crosta-escura); font-weight: 700; font-size: 13px; font-family: inherit;">
+                            Fazer login
+                        </button>
+                    </p>
+                </div>
+            </div>
+
         </div>
 
     </div>
@@ -145,13 +259,15 @@
 
 <script>
 // ---------- Controle do modal ----------
-function openLoginModal(tab, clienteState) {
+function openLoginModal(tab, state) {
     var modal = document.getElementById('modal-login');
     if (modal) {
         modal.classList.add('active');
         switchLoginTab(tab || 'cliente');
-        if (tab === 'cliente' && clienteState) {
-            switchClienteState(clienteState);
+        if (tab === 'cliente' && state) {
+            switchClienteState(state);
+        } else if (tab === 'padaria' && state) {
+            switchPadariaState(state);
         }
     }
 }
@@ -202,6 +318,28 @@ function switchClienteState(state) {
     }
 }
 
+// ---------- Sub-estados da aba padaria ----------
+function switchPadariaState(state) {
+    var loginState    = document.getElementById('padaria-login-state');
+    var cadastroState = document.getElementById('padaria-cadastro-state');
+
+    if (state === 'cadastro') {
+        loginState.style.display    = 'none';
+        cadastroState.style.display = 'block';
+        setTimeout(function() {
+            var el = document.getElementById('input-cadastro-padaria-nome');
+            if (el) el.focus();
+        }, 50);
+    } else {
+        loginState.style.display    = 'block';
+        cadastroState.style.display = 'none';
+        setTimeout(function() {
+            var el = document.getElementById('input-login-padaria-tel');
+            if (el) el.focus();
+        }, 50);
+    }
+}
+
 // ---------- Auto-abertura por query param ----------
 (function () {
     var params = new URLSearchParams(window.location.search);
@@ -218,6 +356,18 @@ function switchClienteState(state) {
         openLoginModal('cliente', 'login');
         if (tel) {
             var f = document.getElementById('input-login-tel');
+            if (f) f.value = tel;
+        }
+    } else if (modal === 'padaria_cadastro') {
+        openLoginModal('padaria', 'cadastro');
+        if (tel) {
+            var f = document.getElementById('input-cadastro-padaria-tel');
+            if (f) f.value = tel;
+        }
+    } else if (modal === 'padaria') {
+        openLoginModal('padaria', 'login');
+        if (tel) {
+            var f = document.getElementById('input-login-padaria-tel');
             if (f) f.value = tel;
         }
     }

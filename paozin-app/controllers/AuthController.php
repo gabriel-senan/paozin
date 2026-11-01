@@ -2,15 +2,31 @@
 
 class AuthController {
     public function loginPadaria(): void {
+        $telefone = trim($_POST['telefone'] ?? $_POST['whatsapp'] ?? '');
         $padariaId = (int)($_POST['padaria_id'] ?? 0);
-        if ($padariaId <= 0) {
-            header("Location: /?status=erro_login_padaria");
+        $senha = trim($_POST['senha'] ?? $_POST['codigo_acesso'] ?? '');
+
+        $padaria = null;
+        if (!empty($telefone)) {
+            $padaria = Padaria::buscarPorTelefone($telefone);
+            if (!$padaria) {
+                // Não encontrou por telefone — redireciona para a aba de cadastro da padaria com o telefone pré-preenchido
+                header("Location: /?modal=padaria_cadastro&tel=" . urlencode($telefone));
+                exit;
+            }
+        } elseif ($padariaId > 0) {
+            $padaria = Padaria::buscarPorId($padariaId);
+        }
+
+        if (!$padaria) {
+            header("Location: /?modal=padaria&status=erro_login_padaria");
             exit;
         }
 
-        $padaria = Padaria::buscarPorId($padariaId);
-        if (!$padaria) {
-            header("Location: /?status=padaria_nao_encontrada");
+        // Validação da senha da padaria (tanto para login via número quanto via lista/nome)
+        if (!Padaria::validarSenha($padaria, $senha)) {
+            $paramTel = !empty($telefone) ? '&tel=' . urlencode($telefone) : '';
+            header("Location: /?modal=padaria&status=senha_incorreta" . $paramTel);
             exit;
         }
 
@@ -20,6 +36,105 @@ class AuthController {
         $_SESSION['user_type'] = 'padaria';
 
         header("Location: /painel?status=bem_vindo");
+        exit;
+    }
+
+    public function cadastrarPadaria(): void {
+        $nome     = trim($_POST['nome'] ?? '');
+        $telefone = trim($_POST['telefone'] ?? '');
+        $senha    = trim($_POST['senha'] ?? 'paozin123');
+        $endereco = trim($_POST['endereco'] ?? '');
+        $precoQuilo = (float)str_replace(',', '.', $_POST['preco_pao_quilo'] ?? '15.90');
+        $precoUnidade = isset($_POST['preco_pao_unidade']) && $_POST['preco_pao_unidade'] !== '' ? (float)str_replace(',', '.', $_POST['preco_pao_unidade']) : 0.95;
+        $horarioFunc = trim($_POST['horario_funcionamento'] ?? '06:00 às 20:00');
+        $horariosFornada = trim($_POST['horarios_fornada'] ?? '06:30, 16:30');
+
+        if (empty($nome) || empty($telefone)) {
+            header("Location: /?modal=padaria_cadastro&status=campos_obrigatorios");
+            exit;
+        }
+
+        $padariaExistente = Padaria::buscarPorTelefone($telefone);
+        if ($padariaExistente) {
+            // Se já existe com esse telefone, autentica se a senha estiver correta
+            if (!Padaria::validarSenha($padariaExistente, $senha)) {
+                header("Location: /?modal=padaria&status=senha_incorreta&tel=" . urlencode($telefone));
+                exit;
+            }
+            $_SESSION['padaria_id'] = $padariaExistente['id'];
+            $_SESSION['padaria_nome'] = $padariaExistente['nome'];
+            $_SESSION['user_type'] = 'padaria';
+            header("Location: /painel?status=bem_vindo");
+            exit;
+        }
+
+        $novoId = Padaria::cadastrar([
+            'nome' => $nome,
+            'telefone' => $telefone,
+            'senha' => $senha ?: 'paozin123',
+            'endereco' => $endereco ?: 'Bairro Central',
+            'preco_pao_quilo' => $precoQuilo,
+            'preco_pao_unidade' => $precoUnidade,
+            'horario_funcionamento' => $horarioFunc,
+            'horarios_fornada' => $horariosFornada
+        ]);
+
+        if (!$novoId) {
+            header("Location: /?modal=padaria_cadastro&status=erro");
+            exit;
+        }
+
+        $_SESSION['padaria_id'] = $novoId;
+        $_SESSION['padaria_nome'] = $nome;
+        $_SESSION['user_type'] = 'padaria';
+
+        header("Location: /painel?status=cadastro_sucesso");
+        exit;
+    }
+
+    public function salvarPadaria(): void {
+        if (empty($_SESSION['padaria_id'])) {
+            header("Location: /?status=login_necessario");
+            exit;
+        }
+
+        $id = (int)$_SESSION['padaria_id'];
+        $nome = trim($_POST['nome'] ?? '');
+        $endereco = trim($_POST['endereco'] ?? '');
+        $telefone = trim($_POST['telefone'] ?? '');
+        $senha = trim($_POST['senha'] ?? '');
+        $precoQuilo = (float)str_replace(',', '.', $_POST['preco_pao_quilo'] ?? '15.90');
+        $precoUnidade = isset($_POST['preco_pao_unidade']) && $_POST['preco_pao_unidade'] !== '' ? (float)str_replace(',', '.', $_POST['preco_pao_unidade']) : null;
+        $horarioFunc = trim($_POST['horario_funcionamento'] ?? '');
+        $horariosFornada = trim($_POST['horarios_fornada'] ?? '');
+
+        if (empty($nome)) {
+            header("Location: /painel?status=erro_dados");
+            exit;
+        }
+
+        $dadosAtualizar = [
+            'nome' => $nome,
+            'endereco' => $endereco,
+            'telefone' => $telefone,
+            'preco_pao_quilo' => $precoQuilo,
+            'preco_pao_unidade' => $precoUnidade,
+            'horario_funcionamento' => $horarioFunc,
+            'horarios_fornada' => $horariosFornada
+        ];
+        if (!empty($senha)) {
+            $dadosAtualizar['senha'] = $senha;
+        }
+
+        $sucesso = Padaria::atualizarDados($id, $dadosAtualizar);
+
+        if ($sucesso) {
+            $_SESSION['padaria_nome'] = $nome;
+            header("Location: /painel?status=dados_atualizados");
+            exit;
+        }
+
+        header("Location: /painel?status=erro_atualizar");
         exit;
     }
 
