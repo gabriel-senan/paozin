@@ -656,12 +656,6 @@ require_once __DIR__ . '/includes/header.php';
                     Por apenas <strong>R$ 20,00 mensais</strong> (menos que um pacote de café tradicional), o Pãozin conecta o seu forno aos clientes do seu quarteirão no minuto exato em que a fornada fica pronta.
                 </p>
 
-                <div style="display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 32px;">
-                    <span class="badge" style="background: #fff; font-size: 12.5px;">Sem chip extra na padaria</span>
-                    <span class="badge" style="background: #fff; font-size: 12.5px;">Um botão no celular do padeiro</span>
-                    <span class="badge" style="background: #fff; font-size: 12.5px;">Sem taxa sobre suas vendas</span>
-                </div>
-
                 <div style="display: flex; gap: 14px; flex-wrap: wrap;">
                     <button onclick="openLoginModal('padaria')" class="btn-3d btn-fornada btn-grande">
                         Acessar Painel do Padeiro

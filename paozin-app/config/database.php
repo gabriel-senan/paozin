@@ -14,11 +14,11 @@ class Database {
             // Tenta MySQL se o driver estiver presente no PHP
             if ($temMysql) {
                 try {
-                    $host = getenv('DB_HOST') ?: '127.0.0.1';
-                    $port = getenv('DB_PORT') ?: '3306';
+                    $host   = getenv('DB_HOST') ?: '127.0.0.1';
+                    $port   = getenv('DB_PORT') ?: '3306';
                     $dbname = getenv('DB_NAME') ?: 'paozin_db';
-                    $user = getenv('DB_USER') ?: 'paozin_user';
-                    $pass = getenv('DB_PASS') ?: 'paozin_password_local';
+                    $user   = getenv('DB_USER') ?: 'paozin_user';
+                    $pass   = getenv('DB_PASS') ?: 'paozin_password_local';
 
                     $dsn = "mysql:host={$host};port={$port};dbname={$dbname};charset=utf8mb4";
                     self::$instance = new PDO($dsn, $user, $pass, [
@@ -42,7 +42,7 @@ class Database {
                 }
 
                 $sqlitePath = $sqliteDir . '/paozin.sqlite';
-                $novoBanco = !file_exists($sqlitePath) || filesize($sqlitePath) === 0;
+                $novoBanco  = !file_exists($sqlitePath) || filesize($sqlitePath) === 0;
 
                 self::$instance = new PDO("sqlite:" . $sqlitePath, null, null, [
                     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
@@ -65,10 +65,6 @@ class Database {
         return self::$instance;
     }
 
-    public static function getDriver(): string {
-        return self::$driverUsed;
-    }
-
     private static function inicializarSqlite(PDO $db): void {
         $db->exec("
             CREATE TABLE IF NOT EXISTS padarias (
@@ -85,6 +81,7 @@ class Database {
                 nota_media REAL DEFAULT 5.00,
                 status_assinatura TEXT DEFAULT 'ativo',
                 ultima_fornada DATETIME NULL,
+                senha TEXT NULL DEFAULT 'paozin123',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
@@ -124,14 +121,14 @@ class Database {
             );
 
             -- Seeds de Demonstração
-            INSERT INTO padarias (id, nome, endereco, latitude, longitude, preco_pao_quilo, nota_media, status_assinatura) VALUES
-            (1, 'Padaria Fornada de Ouro', 'Rua das Flores, 120 - Bairro Central', -23.55052, -46.63330, 15.90, 4.95, 'ativo'),
-            (2, 'Panificadora Pão da Vila', 'Av. das Acácias, 840 - Vila Nova', -23.56141, -46.65588, 14.50, 4.80, 'ativo');
+            INSERT INTO padarias (id, nome, endereco, latitude, longitude, telefone, preco_pao_quilo, preco_pao_unidade, horario_funcionamento, horarios_fornada, nota_media, status_assinatura) VALUES
+            (1, 'Padaria Fornada de Ouro', 'Rua das Flores, 120 - Bairro Central', -23.55052, -46.63330, '11988880001', 15.90, 0.95, '06:00 às 20:00', '06:30, 16:30', 4.95, 'ativo'),
+            (2, 'Panificadora Pão da Vila', 'Av. das Acácias, 840 - Vila Nova',    -23.56141, -46.65588, '11988880002', 14.50, 0.90, '06:00 às 21:00', '07:00, 17:00', 4.80, 'ativo');
 
             INSERT INTO clientes (id, whatsapp, nome, ativo) VALUES
-            (1, '5511999990001', 'Gabriel Silva', 1),
+            (1, '5511999990001', 'Gabriel Silva',    1),
             (2, '5511999990002', 'Mariana Oliveira', 1),
-            (3, '5511999990003', 'Carlos Eduardo', 1);
+            (3, '5511999990003', 'Carlos Eduardo',   1);
 
             INSERT INTO padaria_cliente (padaria_id, cliente_id) VALUES
             (1, 1),
@@ -148,6 +145,7 @@ class Database {
     private static function garantirColunasPadarias(PDO $db): void {
         try {
             $cols = $db->query("PRAGMA table_info(padarias)")->fetchAll(PDO::FETCH_COLUMN, 1);
+
             if (!in_array('telefone', $cols)) {
                 $db->exec("ALTER TABLE padarias ADD COLUMN telefone TEXT NULL;");
             }
@@ -164,9 +162,7 @@ class Database {
                 $db->exec("ALTER TABLE padarias ADD COLUMN senha TEXT NULL DEFAULT 'paozin123';");
             }
 
-            // Atribui telefones default e senhas para os seeds se estiverem vazios
-            $db->exec("UPDATE padarias SET telefone = '11988880001', preco_pao_unidade = 0.95, horario_funcionamento = '06:00 às 20:00', horarios_fornada = '06:30, 16:30', senha = COALESCE(NULLIF(senha, ''), 'paozin123') WHERE id = 1 AND (telefone IS NULL OR telefone = '');");
-            $db->exec("UPDATE padarias SET telefone = '11988880002', preco_pao_unidade = 0.90, horario_funcionamento = '06:00 às 21:00', horarios_fornada = '07:00, 17:00', senha = COALESCE(NULLIF(senha, ''), 'paozin123') WHERE id = 2 AND (telefone IS NULL OR telefone = '');");
+            // Garante que nenhuma padaria fique sem senha (pode acontecer em bancos muito antigos)
             $db->exec("UPDATE padarias SET senha = 'paozin123' WHERE senha IS NULL OR senha = '';");
         } catch (Exception $e) {
             // Silencioso se der erro não-crítico
@@ -176,29 +172,34 @@ class Database {
     private static function loadEnv(): void {
         $envPaths = [
             __DIR__ . '/../../.env',
-            __DIR__ . '/../.env'
+            __DIR__ . '/../.env',
         ];
 
         foreach ($envPaths as $path) {
-            if (file_exists($path)) {
-                $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-                foreach ($lines as $line) {
-                    $line = trim($line);
-                    if ($line === '' || str_starts_with($line, '#')) {
-                        continue;
-                    }
-                    if (str_contains($line, '=')) {
-                        [$name, $value] = explode('=', $line, 2);
-                        $name = trim($name);
-                        $value = trim($value);
-                        if (!getenv($name)) {
-                            putenv("{$name}={$value}");
-                            $_ENV[$name] = $value;
-                        }
-                    }
-                }
-                break;
+            if (!file_exists($path)) {
+                continue;
             }
+
+            $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if ($line === '' || str_starts_with($line, '#')) {
+                    continue;
+                }
+                if (!str_contains($line, '=')) {
+                    continue;
+                }
+
+                [$name, $value] = explode('=', $line, 2);
+                $name  = trim($name);
+                $value = trim($value);
+
+                if (!getenv($name)) {
+                    putenv("{$name}={$value}");
+                    $_ENV[$name] = $value;
+                }
+            }
+            break;
         }
     }
 }

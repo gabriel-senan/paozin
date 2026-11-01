@@ -78,9 +78,9 @@ class Padaria {
 
         if ($minutosPassados < $limiteMinutos) {
             return [
-                'em_cooldown' => true,
+                'em_cooldown'       => true,
                 'minutos_restantes' => (int)ceil($limiteMinutos - $minutosPassados),
-                'ultima_fornada' => $padaria['ultima_fornada']
+                'ultima_fornada'    => $padaria['ultima_fornada'],
             ];
         }
 
@@ -97,7 +97,11 @@ class Padaria {
             $stmt1->execute([$id]);
 
             // Conta total de assinantes no momento
-            $stmtCount = $db->prepare("SELECT COUNT(*) FROM padaria_cliente pc INNER JOIN clientes c ON c.id = pc.cliente_id WHERE pc.padaria_id = ? AND c.ativo = 1");
+            $stmtCount = $db->prepare("
+                SELECT COUNT(*) FROM padaria_cliente pc
+                INNER JOIN clientes c ON c.id = pc.cliente_id
+                WHERE pc.padaria_id = ? AND c.ativo = 1
+            ");
             $stmtCount->execute([$id]);
             $totalAvisados = (int)$stmtCount->fetchColumn();
 
@@ -106,6 +110,7 @@ class Padaria {
             $stmt2->execute([$id, $preco, $totalAvisados]);
 
             $db->commit();
+            return true;
         } catch (Exception $e) {
             $db->rollBack();
             return false;
@@ -129,28 +134,38 @@ class Padaria {
         return $res ?: null;
     }
 
+    /**
+     * Extrai e normaliza os campos comuns entre cadastrar() e atualizarDados().
+     */
+    private static function parseCamposPadaria(array $dados): array {
+        return [
+            'nome'                  => trim($dados['nome'] ?? ''),
+            'endereco'              => trim($dados['endereco'] ?? ''),
+            'telefone'              => preg_replace('/\D/', '', $dados['telefone'] ?? ''),
+            'preco_pao_quilo'       => (float)($dados['preco_pao_quilo'] ?? 14.90),
+            'preco_pao_unidade'     => isset($dados['preco_pao_unidade']) && $dados['preco_pao_unidade'] !== ''
+                ? (float)$dados['preco_pao_unidade']
+                : null,
+            'horario_funcionamento' => trim($dados['horario_funcionamento'] ?? '06:00 às 20:00'),
+            'horarios_fornada'      => trim($dados['horarios_fornada'] ?? '06:30, 16:30'),
+            'senha'                 => trim($dados['senha'] ?? ''),
+            'latitude'              => !empty($dados['latitude']) ? (float)$dados['latitude'] : null,
+            'longitude'             => !empty($dados['longitude']) ? (float)$dados['longitude'] : null,
+        ];
+    }
+
     public static function cadastrar(array $dados): ?int {
         $db = Database::getConnection();
-        $nome = trim($dados['nome'] ?? '');
-        $endereco = trim($dados['endereco'] ?? '');
-        $telefone = preg_replace('/\D/', '', $dados['telefone'] ?? '');
-        $precoQuilo = (float)($dados['preco_pao_quilo'] ?? 14.90);
-        $precoUnidade = isset($dados['preco_pao_unidade']) && $dados['preco_pao_unidade'] !== '' ? (float)$dados['preco_pao_unidade'] : null;
-        $horarioFunc = trim($dados['horario_funcionamento'] ?? '06:00 às 20:00');
-        $horariosFornada = trim($dados['horarios_fornada'] ?? '06:30, 16:30');
-        $senha = trim($dados['senha'] ?? 'paozin123');
-        $latitude = !empty($dados['latitude']) ? (float)$dados['latitude'] : null;
-        $longitude = !empty($dados['longitude']) ? (float)$dados['longitude'] : null;
+        $p = self::parseCamposPadaria($dados);
 
-        // Se latitude e longitude não foram enviadas explicitamente, geocodifica pelo endereço
-        if ($latitude === null || $longitude === null) {
-            $coords = self::geocodificarEndereco($endereco);
-            $latitude = $coords['lat'];
-            $longitude = $coords['lng'];
+        if (empty($p['nome']) || empty($p['telefone'])) {
+            return null;
         }
 
-        if (empty($nome) || empty($telefone)) {
-            return null;
+        if ($p['latitude'] === null || $p['longitude'] === null) {
+            $coords = self::geocodificarEndereco($p['endereco']);
+            $p['latitude']  = $coords['lat'];
+            $p['longitude'] = $coords['lng'];
         }
 
         try {
@@ -162,16 +177,16 @@ class Padaria {
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 5.0, 'ativo')
             ");
             $stmt->execute([
-                $nome,
-                $endereco ?: 'Endereço a definir',
-                $telefone,
-                $precoQuilo,
-                $precoUnidade,
-                $horarioFunc,
-                $horariosFornada,
-                $senha ?: 'paozin123',
-                $latitude,
-                $longitude
+                $p['nome'],
+                $p['endereco'] ?: 'Endereço a definir',
+                $p['telefone'],
+                $p['preco_pao_quilo'],
+                $p['preco_pao_unidade'],
+                $p['horario_funcionamento'],
+                $p['horarios_fornada'],
+                $p['senha'] ?: 'paozin123',
+                $p['latitude'],
+                $p['longitude'],
             ]);
             return (int)$db->lastInsertId();
         } catch (Exception $e) {
@@ -185,11 +200,15 @@ class Padaria {
             return ['lat' => -23.55052, 'lng' => -46.63330];
         }
 
-        // Se não tiver menção a SP/São Paulo, adiciona para melhorar precisão
         $termo = $limpo;
-        if (!stripos($termo, 'são paulo') && !stripos($termo, 'sp') && !stripos($termo, 'capão redondo')) {
+        $temSP      = stripos($termo, 'são paulo') !== false;
+        $temSPAbrev = stripos($termo, 'sp') !== false;
+        $temCapao   = stripos($termo, 'capão redondo') !== false;
+        $temBrasil  = stripos($termo, 'brasil') !== false;
+
+        if (!$temSP && !$temSPAbrev && !$temCapao) {
             $termo .= ', São Paulo, SP, Brasil';
-        } elseif (!stripos($termo, 'brasil')) {
+        } elseif (!$temBrasil) {
             $termo .= ', Brasil';
         }
 
@@ -197,9 +216,9 @@ class Padaria {
             $url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' . urlencode($termo);
             $context = stream_context_create([
                 'http' => [
-                    'header' => "User-Agent: PaozinApp/1.0\r\n",
-                    'timeout' => 3
-                ]
+                    'header'  => "User-Agent: PaozinApp/1.0\r\n",
+                    'timeout' => 3,
+                ],
             ]);
             $res = @file_get_contents($url, false, $context);
             if ($res) {
@@ -207,7 +226,7 @@ class Padaria {
                 if (!empty($json[0]['lat']) && !empty($json[0]['lon'])) {
                     return [
                         'lat' => (float)$json[0]['lat'],
-                        'lng' => (float)$json[0]['lon']
+                        'lng' => (float)$json[0]['lon'],
                     ];
                 }
             }
@@ -220,30 +239,20 @@ class Padaria {
 
     public static function atualizarDados(int $id, array $dados): bool {
         $db = Database::getConnection();
-        $nome = trim($dados['nome'] ?? '');
-        $endereco = trim($dados['endereco'] ?? '');
-        $telefone = preg_replace('/\D/', '', $dados['telefone'] ?? '');
-        $precoQuilo = (float)($dados['preco_pao_quilo'] ?? 14.90);
-        $precoUnidade = isset($dados['preco_pao_unidade']) && $dados['preco_pao_unidade'] !== '' ? (float)$dados['preco_pao_unidade'] : null;
-        $horarioFunc = trim($dados['horario_funcionamento'] ?? '');
-        $horariosFornada = trim($dados['horarios_fornada'] ?? '');
-        $senha = trim($dados['senha'] ?? '');
-        $latitude = !empty($dados['latitude']) ? (float)$dados['latitude'] : null;
-        $longitude = !empty($dados['longitude']) ? (float)$dados['longitude'] : null;
+        $p = self::parseCamposPadaria($dados);
 
-        // Se o endereço foi fornecido e as coordenadas não, busca novas coordenadas
-        if (!empty($endereco) && ($latitude === null || $longitude === null)) {
-            $coords = self::geocodificarEndereco($endereco);
-            $latitude = $coords['lat'];
-            $longitude = $coords['lng'];
-        }
-
-        if (empty($nome)) {
+        if (empty($p['nome'])) {
             return false;
         }
 
+        if (!empty($p['endereco']) && ($p['latitude'] === null || $p['longitude'] === null)) {
+            $coords = self::geocodificarEndereco($p['endereco']);
+            $p['latitude']  = $coords['lat'];
+            $p['longitude'] = $coords['lng'];
+        }
+
         try {
-            if (!empty($senha)) {
+            if (!empty($p['senha'])) {
                 $stmt = $db->prepare("
                     UPDATE padarias SET
                         nome = ?,
@@ -260,17 +269,17 @@ class Padaria {
                     WHERE id = ?
                 ");
                 return $stmt->execute([
-                    $nome,
-                    $endereco,
-                    $telefone,
-                    $precoQuilo,
-                    $precoUnidade,
-                    $horarioFunc,
-                    $horariosFornada,
-                    $senha,
-                    $latitude,
-                    $longitude,
-                    $id
+                    $p['nome'],
+                    $p['endereco'],
+                    $p['telefone'],
+                    $p['preco_pao_quilo'],
+                    $p['preco_pao_unidade'],
+                    $p['horario_funcionamento'],
+                    $p['horarios_fornada'],
+                    $p['senha'],
+                    $p['latitude'],
+                    $p['longitude'],
+                    $id,
                 ]);
             } else {
                 $stmt = $db->prepare("
@@ -288,16 +297,16 @@ class Padaria {
                     WHERE id = ?
                 ");
                 return $stmt->execute([
-                    $nome,
-                    $endereco,
-                    $telefone,
-                    $precoQuilo,
-                    $precoUnidade,
-                    $horarioFunc,
-                    $horariosFornada,
-                    $latitude,
-                    $longitude,
-                    $id
+                    $p['nome'],
+                    $p['endereco'],
+                    $p['telefone'],
+                    $p['preco_pao_quilo'],
+                    $p['preco_pao_unidade'],
+                    $p['horario_funcionamento'],
+                    $p['horarios_fornada'],
+                    $p['latitude'],
+                    $p['longitude'],
+                    $id,
                 ]);
             }
         } catch (Exception $e) {
@@ -307,10 +316,7 @@ class Padaria {
 
     public static function validarSenha(array $padaria, string $senhaDigitada): bool {
         $senhaBanco = trim($padaria['senha'] ?? '');
-        if (empty($senhaBanco)) {
-            // Se ainda não tinha senha configurada, aceita o padrão paozin123
-            return $senhaDigitada === 'paozin123';
-        }
-        return $senhaBanco === trim($senhaDigitada);
+        $senhaRef   = empty($senhaBanco) ? 'paozin123' : $senhaBanco;
+        return $senhaRef === trim($senhaDigitada);
     }
 }

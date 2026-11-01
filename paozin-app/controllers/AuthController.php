@@ -2,15 +2,14 @@
 
 class AuthController {
     public function loginPadaria(): void {
-        $telefone = trim($_POST['telefone'] ?? $_POST['whatsapp'] ?? '');
+        $telefone  = trim($_POST['telefone'] ?? '');
         $padariaId = (int)($_POST['padaria_id'] ?? 0);
-        $senha = trim($_POST['senha'] ?? $_POST['codigo_acesso'] ?? '');
+        $senha     = trim($_POST['senha'] ?? '');
 
         $padaria = null;
         if (!empty($telefone)) {
             $padaria = Padaria::buscarPorTelefone($telefone);
             if (!$padaria) {
-                // Não encontrou por telefone — redireciona para a aba de cadastro da padaria com o telefone pré-preenchido
                 header("Location: /?modal=padaria_cadastro&tel=" . urlencode($telefone));
                 exit;
             }
@@ -23,30 +22,30 @@ class AuthController {
             exit;
         }
 
-        // Validação da senha da padaria (tanto para login via número quanto via lista/nome)
         if (!Padaria::validarSenha($padaria, $senha)) {
             $paramTel = !empty($telefone) ? '&tel=' . urlencode($telefone) : '';
             header("Location: /?modal=padaria&status=senha_incorreta" . $paramTel);
             exit;
         }
 
-        // Salva na sessão
-        $_SESSION['padaria_id'] = $padaria['id'];
+        $_SESSION['padaria_id']   = $padaria['id'];
         $_SESSION['padaria_nome'] = $padaria['nome'];
-        $_SESSION['user_type'] = 'padaria';
+        $_SESSION['user_type']    = 'padaria';
 
         header("Location: /painel?status=bem_vindo");
         exit;
     }
 
     public function cadastrarPadaria(): void {
-        $nome            = trim($_POST['nome'] ?? '');
-        $telefone        = trim($_POST['telefone'] ?? '');
-        $senha           = trim($_POST['senha'] ?? '');
-        $confirmarSenha  = trim($_POST['confirmar_senha'] ?? '');
-        $endereco        = trim($_POST['endereco'] ?? '');
-        $precoQuilo      = (float)str_replace(',', '.', $_POST['preco_pao_quilo'] ?? '15.90');
-        $precoUnidade    = isset($_POST['preco_pao_unidade']) && $_POST['preco_pao_unidade'] !== '' ? (float)str_replace(',', '.', $_POST['preco_pao_unidade']) : 0.95;
+        $nome           = trim($_POST['nome'] ?? '');
+        $telefone       = trim($_POST['telefone'] ?? '');
+        $senha          = trim($_POST['senha'] ?? '');
+        $confirmarSenha = trim($_POST['confirmar_senha'] ?? '');
+        $endereco       = trim($_POST['endereco'] ?? '');
+        $precoQuilo     = (float)str_replace(',', '.', $_POST['preco_pao_quilo'] ?? '15.90');
+        $precoUnidade   = isset($_POST['preco_pao_unidade']) && $_POST['preco_pao_unidade'] !== ''
+            ? (float)str_replace(',', '.', $_POST['preco_pao_unidade'])
+            : 0.95;
         $horarioFunc     = trim($_POST['horario_funcionamento'] ?? '06:00 às 20:00');
         $horariosFornada = trim($_POST['horarios_fornada'] ?? '06:30, 16:30');
 
@@ -62,27 +61,26 @@ class AuthController {
 
         $padariaExistente = Padaria::buscarPorTelefone($telefone);
         if ($padariaExistente) {
-            // Se já existe com esse telefone, autentica se a senha estiver correta
             if (!Padaria::validarSenha($padariaExistente, $senha)) {
                 header("Location: /?modal=padaria&status=senha_incorreta&tel=" . urlencode($telefone));
                 exit;
             }
-            $_SESSION['padaria_id'] = $padariaExistente['id'];
+            $_SESSION['padaria_id']   = $padariaExistente['id'];
             $_SESSION['padaria_nome'] = $padariaExistente['nome'];
-            $_SESSION['user_type'] = 'padaria';
+            $_SESSION['user_type']    = 'padaria';
             header("Location: /painel?status=bem_vindo");
             exit;
         }
 
         $novoId = Padaria::cadastrar([
-            'nome' => $nome,
-            'telefone' => $telefone,
-            'senha' => $senha ?: 'paozin123',
-            'endereco' => $endereco ?: 'Bairro Central',
-            'preco_pao_quilo' => $precoQuilo,
-            'preco_pao_unidade' => $precoUnidade,
+            'nome'                  => $nome,
+            'telefone'              => $telefone,
+            'senha'                 => $senha ?: 'paozin123',
+            'endereco'              => $endereco ?: 'Bairro Central',
+            'preco_pao_quilo'       => $precoQuilo,
+            'preco_pao_unidade'     => $precoUnidade,
             'horario_funcionamento' => $horarioFunc,
-            'horarios_fornada' => $horariosFornada
+            'horarios_fornada'      => $horariosFornada,
         ]);
 
         if (!$novoId) {
@@ -90,9 +88,9 @@ class AuthController {
             exit;
         }
 
-        $_SESSION['padaria_id'] = $novoId;
+        $_SESSION['padaria_id']   = $novoId;
         $_SESSION['padaria_nome'] = $nome;
-        $_SESSION['user_type'] = 'padaria';
+        $_SESSION['user_type']    = 'padaria';
 
         header("Location: /painel?status=cadastro_sucesso");
         exit;
@@ -104,14 +102,16 @@ class AuthController {
             exit;
         }
 
-        $id = (int)$_SESSION['padaria_id'];
-        $nome = trim($_POST['nome'] ?? '');
-        $endereco = trim($_POST['endereco'] ?? '');
-        $telefone = trim($_POST['telefone'] ?? '');
-        $senha = trim($_POST['senha'] ?? '');
-        $precoQuilo = (float)str_replace(',', '.', $_POST['preco_pao_quilo'] ?? '15.90');
-        $precoUnidade = isset($_POST['preco_pao_unidade']) && $_POST['preco_pao_unidade'] !== '' ? (float)str_replace(',', '.', $_POST['preco_pao_unidade']) : null;
-        $horarioFunc = trim($_POST['horario_funcionamento'] ?? '');
+        $id           = (int)$_SESSION['padaria_id'];
+        $nome         = trim($_POST['nome'] ?? '');
+        $endereco     = trim($_POST['endereco'] ?? '');
+        $telefone     = trim($_POST['telefone'] ?? '');
+        $senha        = trim($_POST['senha'] ?? '');
+        $precoQuilo   = (float)str_replace(',', '.', $_POST['preco_pao_quilo'] ?? '15.90');
+        $precoUnidade = isset($_POST['preco_pao_unidade']) && $_POST['preco_pao_unidade'] !== ''
+            ? (float)str_replace(',', '.', $_POST['preco_pao_unidade'])
+            : null;
+        $horarioFunc     = trim($_POST['horario_funcionamento'] ?? '');
         $horariosFornada = trim($_POST['horarios_fornada'] ?? '');
 
         if (empty($nome)) {
@@ -120,13 +120,13 @@ class AuthController {
         }
 
         $dadosAtualizar = [
-            'nome' => $nome,
-            'endereco' => $endereco,
-            'telefone' => $telefone,
-            'preco_pao_quilo' => $precoQuilo,
-            'preco_pao_unidade' => $precoUnidade,
+            'nome'                  => $nome,
+            'endereco'              => $endereco,
+            'telefone'              => $telefone,
+            'preco_pao_quilo'       => $precoQuilo,
+            'preco_pao_unidade'     => $precoUnidade,
             'horario_funcionamento' => $horarioFunc,
-            'horarios_fornada' => $horariosFornada
+            'horarios_fornada'      => $horariosFornada,
         ];
         if (!empty($senha)) {
             $dadosAtualizar['senha'] = $senha;
@@ -153,15 +153,14 @@ class AuthController {
 
         $cliente = Cliente::buscarPorWhatsapp($whatsapp);
         if (!$cliente) {
-            // Número não encontrado — redireciona para o modal de cadastro com o telefone preenchido
             header("Location: /?modal=cadastro&tel=" . urlencode($whatsapp));
             exit;
         }
 
-        $_SESSION['cliente_id'] = $cliente['id'];
-        $_SESSION['cliente_nome'] = $cliente['nome'];
+        $_SESSION['cliente_id']      = $cliente['id'];
+        $_SESSION['cliente_nome']    = $cliente['nome'];
         $_SESSION['cliente_whatsapp'] = $cliente['whatsapp'];
-        $_SESSION['user_type'] = 'cliente';
+        $_SESSION['user_type']        = 'cliente';
 
         header("Location: /minha-conta");
         exit;
@@ -188,8 +187,8 @@ class AuthController {
             exit;
         }
 
-        $_SESSION['cliente_id']       = $cliente['id'];
-        $_SESSION['cliente_nome']     = $cliente['nome'];
+        $_SESSION['cliente_id']      = $cliente['id'];
+        $_SESSION['cliente_nome']    = $cliente['nome'];
         $_SESSION['cliente_whatsapp'] = $cliente['whatsapp'];
         $_SESSION['user_type']        = 'cliente';
 
@@ -209,18 +208,10 @@ class AuthController {
             exit;
         }
 
-        $clienteId = (int)$_SESSION['cliente_id'];
+        $clienteId       = (int)$_SESSION['cliente_id'];
         $padariasSeguidas = Cliente::listarPadariasSeguidas($clienteId);
-
-        // Todas as padarias ativas com coordenadas, para o mapa
-        try {
-            $todasPadarias = Padaria::listarTodas();
-        } catch (Exception $e) {
-            $todasPadarias = [];
-        }
-
-        // IDs das padarias que o cliente já segue (para marcar no mapa)
-        $idsSeguidas = array_column($padariasSeguidas, 'id');
+        $todasPadarias   = Padaria::listarTodas();
+        $idsSeguidas     = array_column($padariasSeguidas, 'id');
 
         require_once __DIR__ . '/../views/minha-conta.php';
     }
@@ -234,9 +225,12 @@ class AuthController {
         $padariaId = (int)($_POST['padaria_id'] ?? 0);
         $clienteId = (int)$_SESSION['cliente_id'];
 
-        if ($padariaId > 0) {
-            Cliente::removerVinculo($clienteId, $padariaId);
+        if ($padariaId <= 0) {
+            header("Location: /minha-conta");
+            exit;
         }
+
+        Cliente::removerVinculo($clienteId, $padariaId);
 
         header("Location: /minha-conta?status=alerta_removido");
         exit;

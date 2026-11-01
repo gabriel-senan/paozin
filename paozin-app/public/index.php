@@ -6,7 +6,7 @@ spl_autoload_register(function ($class_name) {
     $directories = [
         __DIR__ . '/../controllers/',
         __DIR__ . '/../models/',
-        __DIR__ . '/../config/'
+        __DIR__ . '/../config/',
     ];
 
     foreach ($directories as $dir) {
@@ -19,46 +19,42 @@ spl_autoload_register(function ($class_name) {
 });
 
 // Captura da rota solicitada
-$uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+$uri    = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-if ($uri === '/' && $method === 'GET') {
-    $controller = new PadariaController();
-    $controller->home();
-} elseif ($uri === '/inscrever' && $method === 'POST') {
-    $controller = new PadariaController();
-    $controller->inscreverCliente();
-} elseif ($uri === '/login-padaria' && $method === 'POST') {
-    $controller = new AuthController();
-    $controller->loginPadaria();
-} elseif ($uri === '/cadastrar-padaria' && $method === 'POST') {
-    $controller = new AuthController();
-    $controller->cadastrarPadaria();
-} elseif ($uri === '/painel/salvar' && $method === 'POST') {
-    $controller = new AuthController();
-    $controller->salvarPadaria();
-} elseif ($uri === '/login-cliente' && $method === 'POST') {
-    $controller = new AuthController();
-    $controller->loginCliente();
-} elseif ($uri === '/cadastrar-cliente' && $method === 'POST') {
-    $controller = new AuthController();
-    $controller->cadastrarCliente();
-} elseif ($uri === '/minha-conta' && $method === 'GET') {
-    $controller = new AuthController();
-    $controller->minhaConta();
-} elseif ($uri === '/cancelar-alerta' && $method === 'POST') {
-    $controller = new AuthController();
-    $controller->cancelarAlerta();
-} elseif ($uri === '/logout' && $method === 'GET') {
-    $controller = new AuthController();
-    $controller->logout();
-} elseif ($uri === '/painel' && $method === 'GET') {
+// Tabela de rotas: [uri, method] => callable que recebe nenhum argumento
+$routes = [
+    ['GET',  '/',                    fn() => (new PadariaController())->home()],
+    ['POST', '/inscrever',           fn() => (new PadariaController())->inscreverCliente()],
+    ['POST', '/login-padaria',       fn() => (new AuthController())->loginPadaria()],
+    ['POST', '/cadastrar-padaria',   fn() => (new AuthController())->cadastrarPadaria()],
+    ['POST', '/painel/salvar',       fn() => (new AuthController())->salvarPadaria()],
+    ['POST', '/login-cliente',       fn() => (new AuthController())->loginCliente()],
+    ['POST', '/cadastrar-cliente',   fn() => (new AuthController())->cadastrarCliente()],
+    ['GET',  '/minha-conta',         fn() => (new AuthController())->minhaConta()],
+    ['POST', '/cancelar-alerta',     fn() => (new AuthController())->cancelarAlerta()],
+    ['GET',  '/logout',              fn() => (new AuthController())->logout()],
+    ['POST', '/painel/fornada-pronta', fn() => (new AlertaController())->dispararFornada()],
+];
+
+// Rota especial: /painel requer sessão ativa de padaria
+if ($uri === '/painel' && $method === 'GET') {
+    if (empty($_SESSION['padaria_id'])) {
+        header('Location: /');
+        exit;
+    }
     require_once __DIR__ . '/../views/painel.php';
-} elseif ($uri === '/painel/fornada-pronta' && $method === 'POST') {
-    $controller = new AlertaController();
-    $controller->dispararFornada();
-} else {
-    // Redireciona para a landing page
-    header("Location: /");
     exit;
 }
+
+// Despacho das rotas da tabela
+foreach ($routes as [$routeMethod, $routeUri, $handler]) {
+    if ($uri === $routeUri && $method === $routeMethod) {
+        $handler();
+        exit;
+    }
+}
+
+// Rota não encontrada — volta para a landing page
+header('Location: /');
+exit;

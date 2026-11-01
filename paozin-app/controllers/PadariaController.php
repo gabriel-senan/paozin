@@ -14,39 +14,40 @@ class PadariaController {
     }
 
     public function inscreverCliente(): void {
-        $nome = trim($_POST['nome'] ?? '');
-        $whatsapp = trim($_POST['whatsapp'] ?? '');
+        $nome      = trim($_POST['nome'] ?? '');
+        $whatsapp  = trim($_POST['whatsapp'] ?? '');
         $padariaId = (int)($_POST['padaria_id'] ?? 1);
-        $redirect = trim($_POST['redirect'] ?? '');
+        $redirect  = trim($_POST['redirect'] ?? '');
 
         // Destino seguro: só aceita /minha-conta ou / (evita open redirect)
         $destino = ($redirect === '/minha-conta') ? '/minha-conta' : '/';
-        $sufixoSucesso = ($destino === '/minha-conta') ? '/minha-conta?status=inscrito_sucesso' : '/?status=inscrito_sucesso';
-        $sufixoErro    = ($destino === '/minha-conta') ? '/minha-conta?status=erro_cadastro'    : '/?status=erro_cadastro';
-        $sufixoCampos  = ($destino === '/minha-conta') ? '/minha-conta?status=erro_campos'      : '/?status=erro_campos';
 
         if (empty($nome) || empty($whatsapp) || $padariaId <= 0) {
-            header("Location: $sufixoCampos");
+            header("Location: " . $this->urlStatus($destino, 'erro_campos'));
             exit;
         }
 
         $sucesso = Cliente::cadastrar($nome, $whatsapp, $padariaId);
         if ($sucesso) {
-            // Se o cliente está logado, atualiza a sessão com o ID caso ainda não esteja
-            if (!empty($whatsapp) && empty($_SESSION['cliente_id'])) {
+            if (empty($_SESSION['cliente_id'])) {
                 $cliente = Cliente::buscarPorWhatsapp($whatsapp);
                 if ($cliente) {
-                    $_SESSION['cliente_id']       = $cliente['id'];
-                    $_SESSION['cliente_nome']      = $cliente['nome'];
-                    $_SESSION['cliente_whatsapp']  = $cliente['whatsapp'];
-                    $_SESSION['user_type']         = 'cliente';
+                    $_SESSION['cliente_id']      = $cliente['id'];
+                    $_SESSION['cliente_nome']     = $cliente['nome'];
+                    $_SESSION['cliente_whatsapp'] = $cliente['whatsapp'];
+                    $_SESSION['user_type']        = 'cliente';
                 }
             }
-            header("Location: $sufixoSucesso");
+            header("Location: " . $this->urlStatus($destino, 'inscrito_sucesso'));
             exit;
         }
 
-        header("Location: $sufixoErro");
+        header("Location: " . $this->urlStatus($destino, 'erro_cadastro'));
         exit;
+    }
+
+    private function urlStatus(string $base, string $status): string {
+        $sep = str_contains($base, '?') ? '&' : '?';
+        return $base . $sep . 'status=' . $status;
     }
 }

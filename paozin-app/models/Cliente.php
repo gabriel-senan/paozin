@@ -1,23 +1,31 @@
 <?php
 
 class Cliente {
+    /**
+     * Normaliza um número de WhatsApp para o formato E.164 com DDI 55.
+     * Retorna null se o número tiver menos de 10 dígitos após limpeza.
+     */
+    private static function normalizarWhatsapp(string $whatsapp): ?string {
+        $clean = preg_replace('/\D/', '', $whatsapp);
+        if (strlen($clean) < 10) {
+            return null;
+        }
+        if (strlen($clean) === 10 || strlen($clean) === 11) {
+            $clean = '55' . $clean;
+        }
+        return $clean;
+    }
+
     public static function cadastrar(string $nome, string $whatsapp, int $padariaId): bool {
         $db = Database::getConnection();
-        
-        // Limpa formatação do número de telefone (mantém apenas dígitos)
-        $cleanWhatsapp = preg_replace('/\D/', '', $whatsapp);
-        if (strlen($cleanWhatsapp) < 10) {
-            return false;
-        }
 
-        // Garante DDI 55 se o usuário digitou apenas DDD + número
-        if (strlen($cleanWhatsapp) === 10 || strlen($cleanWhatsapp) === 11) {
-            $cleanWhatsapp = '55' . $cleanWhatsapp;
+        $cleanWhatsapp = self::normalizarWhatsapp($whatsapp);
+        if ($cleanWhatsapp === null) {
+            return false;
         }
 
         $db->beginTransaction();
         try {
-            // Busca ou insere o cliente
             $stmt = $db->prepare("SELECT id FROM clientes WHERE whatsapp = ?");
             $stmt->execute([$cleanWhatsapp]);
             $clienteId = $stmt->fetchColumn();
@@ -27,12 +35,10 @@ class Cliente {
                 $stmtInsert->execute([$cleanWhatsapp, trim($nome)]);
                 $clienteId = $db->lastInsertId();
             } else {
-                // Se já existia, reativa caso estivesse inativo e atualiza nome
                 $stmtUpdate = $db->prepare("UPDATE clientes SET ativo = 1, nome = ? WHERE id = ?");
                 $stmtUpdate->execute([trim($nome), $clienteId]);
             }
 
-            // Vincula à padaria se ainda não estiver vinculado
             $stmtCheck = $db->prepare("SELECT id FROM padaria_cliente WHERE padaria_id = ? AND cliente_id = ?");
             $stmtCheck->execute([$padariaId, $clienteId]);
             if (!$stmtCheck->fetchColumn()) {
@@ -48,21 +54,16 @@ class Cliente {
         }
     }
 
-    public static function desativar(string $whatsapp): bool {
-        $db = Database::getConnection();
-        $cleanWhatsapp = preg_replace('/\D/', '', $whatsapp);
-        $stmt = $db->prepare("UPDATE clientes SET ativo = 0 WHERE whatsapp = ?");
-        return $stmt->execute([$cleanWhatsapp]);
-    }
-
     public static function buscarPorWhatsapp(string $whatsapp): ?array {
         $db = Database::getConnection();
-        $cleanWhatsapp = preg_replace('/\D/', '', $whatsapp);
-        if (strlen($cleanWhatsapp) === 10 || strlen($cleanWhatsapp) === 11) {
-            $cleanWhatsapp = '55' . $cleanWhatsapp;
+
+        $cleanWhatsapp = self::normalizarWhatsapp($whatsapp);
+        if ($cleanWhatsapp === null) {
+            return null;
         }
+
         $stmt = $db->prepare("SELECT * FROM clientes WHERE whatsapp = ? OR whatsapp LIKE ?");
-        $stmt->execute([$cleanWhatsapp, '%' . substr($cleanWhatsapp, -9)]);
+        $stmt->execute([$cleanWhatsapp, '%' . substr($cleanWhatsapp, -8)]);
         $res = $stmt->fetch();
         return $res ?: null;
     }
@@ -92,12 +93,9 @@ class Cliente {
     public static function cadastrarSemPadaria(string $nome, string $whatsapp): bool {
         $db = Database::getConnection();
 
-        $cleanWhatsapp = preg_replace('/\D/', '', $whatsapp);
-        if (strlen($cleanWhatsapp) < 10) {
+        $cleanWhatsapp = self::normalizarWhatsapp($whatsapp);
+        if ($cleanWhatsapp === null) {
             return false;
-        }
-        if (strlen($cleanWhatsapp) === 10 || strlen($cleanWhatsapp) === 11) {
-            $cleanWhatsapp = '55' . $cleanWhatsapp;
         }
 
         try {
@@ -106,7 +104,6 @@ class Cliente {
             $existingId = $stmt->fetchColumn();
 
             if ($existingId) {
-                // Reativa e atualiza nome caso já exista
                 $upd = $db->prepare("UPDATE clientes SET ativo = 1, nome = ? WHERE id = ?");
                 return $upd->execute([trim($nome), $existingId]);
             }
