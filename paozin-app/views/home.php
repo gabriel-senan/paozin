@@ -612,7 +612,7 @@ require_once __DIR__ . '/includes/header.php';
 </section>
 
 <!-- ================= GAMIFICAÇÃO ================= -->
-<section style="background: #FFF9EE;">
+<!-- <section style="background: #FFF9EE;">
     <div class="wrap">
         <div class="eyebrow">04 · A Disputa da Vizinhança</div>
         <h2>A nota do pão e suas sequências</h2>
@@ -641,7 +641,8 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         </div>
     </div>
-</section>
+</section> -->
+
 
 <!-- ================= ÁREA DA PADARIA (B2B) ================= -->
 <section id="padaria-b2b">
@@ -650,7 +651,7 @@ require_once __DIR__ . '/includes/header.php';
             <div style="max-width: 640px;">
                 
                 <h2 style="font-size: clamp(28px, 4vw, 42px); margin-bottom: 16px;">
-                    Zere o desperdício de pão e encha seu balcão na hora do pico.
+                    Zere o desperdício e encha seu balcão na hora do pico.
                 </h2>
                 <p class="lead" style="font-size: 16px; margin-bottom: 24px;">
                     Por apenas <strong>R$ 20,00 mensais</strong> (menos que um pacote de café tradicional), o Pãozin conecta o seu forno aos clientes do seu quarteirão no minuto exato em que a fornada fica pronta.
