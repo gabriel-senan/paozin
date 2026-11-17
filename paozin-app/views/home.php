@@ -86,7 +86,7 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="balao-zap-float">
                     <b style="color: #2F6D01; display: flex; align-items: center; gap: 6px;">
                         <svg viewBox="0 0 100 116" style="width: 13px; height: 15px;"><use href="#pin-pao"/></svg>
-                        Aviso do Pãozin
+                        Pãozin:
                     </b>
                     <p style="margin: 6px 0; font-size: 13px; color: #2D4C1E; line-height: 1.4;">
                         Olá, vizinho! Acabou de sair pão quentinho na <strong>Padaria Fornada de Ouro</strong>
